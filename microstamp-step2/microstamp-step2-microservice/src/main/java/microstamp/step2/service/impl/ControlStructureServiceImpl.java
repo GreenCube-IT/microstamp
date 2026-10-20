@@ -9,9 +9,11 @@ import microstamp.step2.dto.connection.FacadeConnectionInsertDto;
 import microstamp.step2.dto.connection.ConnectionInsertDto;
 import microstamp.step2.dto.connection.ConnectionReadDto;
 import microstamp.step2.dto.interaction.FacadeInteractionInsertDto;
+import microstamp.step2.dto.interaction.InteractionInsertDto;
 import microstamp.step2.dto.interaction.InteractionReadDto;
 import microstamp.step2.dto.interaction.InteractionUpdateDto;
 import microstamp.step2.exception.Step2NotFoundException;
+import microstamp.step2.mapper.ControlStructureMapper;
 import microstamp.step2.service.ConnectionService;
 import microstamp.step2.service.InteractionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -121,14 +123,7 @@ public class ControlStructureServiceImpl implements ControlStructureService {
         List<FacadeComponentInsertDto> componentsContainingFather = new ArrayList<>();
 
         for (FacadeComponentInsertDto facadeComponentDto : components) {
-            ComponentInsertDto insertDto = new ComponentInsertDto();
-            insertDto.setName(facadeComponentDto.getName());
-            insertDto.setCode(facadeComponentDto.getCode());
-            insertDto.setIsVisible(facadeComponentDto.getIsVisible());
-            insertDto.setType(facadeComponentDto.getType());
-            insertDto.setBorder(facadeComponentDto.getBorder());
-            insertDto.setAnalysisId(analysisId);
-            insertDto.setFatherId(facadeComponentDto.getFatherId());
+            ComponentInsertDto insertDto = ControlStructureMapper.toComponentInsertDto(facadeComponentDto, analysisId);
 
             if (facadeComponentDto.getFatherCode() != null) {
                 componentsContainingFather.add(facadeComponentDto);
@@ -143,14 +138,7 @@ public class ControlStructureServiceImpl implements ControlStructureService {
             UUID fatherId = componentCodeToIdMap.get(facadeComponentDto.getFatherCode());
 
             if (childId != null && fatherId != null) {
-                ComponentUpdateDto updateDto = ComponentUpdateDto.builder()
-                        .name(facadeComponentDto.getName())
-                        .code(facadeComponentDto.getCode())
-                        .isVisible(facadeComponentDto.getIsVisible())
-                        .type(facadeComponentDto.getType())
-                        .border(facadeComponentDto.getBorder())
-                        .fatherId(fatherId)
-                        .build();
+                ComponentUpdateDto updateDto = ControlStructureMapper.toComponentUpdateDto(facadeComponentDto, fatherId);
 
                 componentService.update(childId, updateDto);
             }
@@ -164,13 +152,7 @@ public class ControlStructureServiceImpl implements ControlStructureService {
             UUID targetId = componentMap.get(facadeConnectionInsertDto.getTargetCode());
 
             if (sourceId != null && targetId != null) {
-                ConnectionInsertDto connectionInsertDto = ConnectionInsertDto.builder()
-                        .code(facadeConnectionInsertDto.getCode())
-                        .style(facadeConnectionInsertDto.getStyle())
-                        .sourceId(sourceId)
-                        .targetId(targetId)
-                        .analysisId(analysisId)
-                        .build();
+                ConnectionInsertDto connectionInsertDto = ControlStructureMapper.toConnectionInsertDto(facadeConnectionInsertDto, sourceId, targetId, analysisId);
 
                 ConnectionReadDto savedConnection = connectionService.insert(connectionInsertDto);
 
@@ -185,8 +167,8 @@ public class ControlStructureServiceImpl implements ControlStructureService {
                                   UUID connectionId) {
         for (FacadeInteractionInsertDto facadeInteractionInsertDto : facadeConnectionInsertDto.getInteractions()) {
             if (facadeInteractionInsertDto.getId() == null) {
-                facadeInteractionInsertDto.setConnectionId(connectionId);
-                interactionService.insert(facadeInteractionInsertDto);
+                InteractionInsertDto interactionInsertDto = ControlStructureMapper.toInteractionInsertDto(facadeInteractionInsertDto, connectionId);
+                interactionService.insert(interactionInsertDto);
             } else {
                 updateExistingInteraction(facadeInteractionInsertDto);
             }
@@ -263,14 +245,7 @@ public class ControlStructureServiceImpl implements ControlStructureService {
                     fatherId = componentCodeToIdMap.get(existingDto.getFatherCode());
                 }
 
-                ComponentUpdateDto updateDto = ComponentUpdateDto.builder()
-                        .name(existingDto.getName())
-                        .code(existingDto.getCode())
-                        .isVisible(existingDto.getIsVisible())
-                        .type(existingDto.getType())
-                        .border(existingDto.getBorder())
-                        .fatherId(fatherId)
-                        .build();
+                ComponentUpdateDto updateDto = ControlStructureMapper.toComponentUpdateDto(existingDto, fatherId);
 
                 componentService.update(existingDto.getId(), updateDto);
             }
@@ -297,12 +272,7 @@ public class ControlStructureServiceImpl implements ControlStructureService {
                     dbConnectionsMap.get(existingDto.getId()));
 
             if (hasConnectionChanged) {
-                ConnectionUpdateDto updateDto = ConnectionUpdateDto.builder()
-                        .code(existingDto.getCode())
-                        .sourceId(sourceId)
-                        .targetId(targetId)
-                        .style(existingDto.getStyle())
-                        .build();
+                ConnectionUpdateDto updateDto = ControlStructureMapper.toConnectionUpdateDto(existingDto, sourceId, targetId);
 
                 connectionService.update(existingDto.getId(), updateDto);
             }
@@ -315,11 +285,7 @@ public class ControlStructureServiceImpl implements ControlStructureService {
     }
 
     private void updateExistingInteraction(FacadeInteractionInsertDto facadeInteractionInsertDto) {
-        InteractionUpdateDto interactionUpdateDto = InteractionUpdateDto.builder()
-                .code(facadeInteractionInsertDto.getCode())
-                .name(facadeInteractionInsertDto.getName())
-                .interactionType(facadeInteractionInsertDto.getInteractionType())
-                .build();
+        InteractionUpdateDto interactionUpdateDto = ControlStructureMapper.toInteractionUpdateDto(facadeInteractionInsertDto);
 
         interactionService.update(facadeInteractionInsertDto.getId(), interactionUpdateDto);
     }

@@ -11,7 +11,9 @@ import microstamp.step2.dto.controlstructure.ControlStructureInsertDto;
 import microstamp.step2.dto.component.FacadeComponentInsertDto;
 import microstamp.step2.dto.connection.FacadeConnectionInsertDto;
 import microstamp.step2.dto.interaction.FacadeInteractionInsertDto;
+import microstamp.step2.dto.interaction.InteractionInsertDto;
 import microstamp.step2.dto.interaction.InteractionReadDto;
+import microstamp.step2.dto.interaction.InteractionUpdateDto;
 import microstamp.step2.exception.Step2NotFoundException;
 import microstamp.step2.service.ComponentService;
 import microstamp.step2.service.ConnectionService;
@@ -312,7 +314,7 @@ public class ControlStructureServiceUnitTest {
         verify(microStampAuthClient, times(1)).getAnalysisById(analysisId);
         verify(componentService, times(2)).insert(any(ComponentInsertDto.class));
         verify(connectionService, times(1)).insert(any(ConnectionInsertDto.class));
-        verify(interactionService, times(1)).insert(any(FacadeInteractionInsertDto.class));
+        verify(interactionService, times(1)).insert(any(InteractionInsertDto.class));
     }
 
     @Test
@@ -367,7 +369,7 @@ public class ControlStructureServiceUnitTest {
         // Assert
         verify(componentService, times(1)).update(eq(compId), any(ComponentUpdateDto.class));
         verify(connectionService, times(1)).update(eq(connId), any(ConnectionUpdateDto.class));
-        verify(interactionService, times(1)).update(eq(interactionId), any());
+        verify(interactionService, times(1)).update(eq(interactionId), any(InteractionUpdateDto.class));
     }
 
     @Test
