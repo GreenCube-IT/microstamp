@@ -1,6 +1,5 @@
 package microstamp.step2.service.impl;
 
-import jakarta.transaction.Transactional;
 import microstamp.step2.dto.interaction.InteractionReadDto;
 import microstamp.step2.dto.interaction.InteractionUpdateDto;
 import microstamp.step2.entity.Connection;
@@ -11,12 +10,12 @@ import microstamp.step2.enumeration.InteractionType;
 import microstamp.step2.exception.Step2InvalidInteractionException;
 import microstamp.step2.exception.Step2NotFoundException;
 import microstamp.step2.mapper.InteractionMapper;
-import microstamp.step2.repository.ComponentRepository;
 import microstamp.step2.repository.ConnectionRepository;
 import microstamp.step2.repository.InteractionRepository;
 import microstamp.step2.service.InteractionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
@@ -30,8 +29,6 @@ public class InteractionServiceImpl implements InteractionService {
 
     @Autowired
     private ConnectionRepository connectionRepository;
-    @Autowired
-    private ComponentRepository componentRepository;
 
     public List<InteractionReadDto> findAll() {
         return interactionRepository.findAll().stream()
