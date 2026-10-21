@@ -1,31 +1,16 @@
 package microstamp.step2.service.impl;
 
 import microstamp.step2.client.MicroStampAuthClient;
-import microstamp.step2.dto.component.ComponentReadDto;
-import microstamp.step2.dto.component.ComponentUpdateDto;
-import microstamp.step2.dto.component.FacadeComponentInsertDto;
-import microstamp.step2.dto.connection.ConnectionUpdateDto;
-import microstamp.step2.dto.connection.FacadeConnectionInsertDto;
-import microstamp.step2.dto.connection.ConnectionInsertDto;
-import microstamp.step2.dto.connection.ConnectionReadDto;
-import microstamp.step2.dto.interaction.FacadeInteractionInsertDto;
-import microstamp.step2.dto.interaction.InteractionInsertDto;
-import microstamp.step2.dto.interaction.InteractionReadDto;
-import microstamp.step2.dto.interaction.InteractionUpdateDto;
-import microstamp.step2.exception.Step2NotFoundException;
-import microstamp.step2.mapper.ControlStructureMapper;
+import microstamp.step2.dto.controlstructure.ControlStructureInsertDto;
+import microstamp.step2.service.ComponentService;
 import microstamp.step2.service.ConnectionService;
+import microstamp.step2.service.ControlStructureService;
 import microstamp.step2.service.InteractionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import microstamp.step2.dto.component.ComponentInsertDto;
-import microstamp.step2.dto.controlstructure.ControlStructureInsertDto;
-import microstamp.step2.service.ComponentService;
-import microstamp.step2.service.ControlStructureService;
-
-import java.util.*;
+import java.util.UUID;
 
 @Component
 public class ControlStructureServiceImpl implements ControlStructureService {
@@ -45,298 +30,25 @@ public class ControlStructureServiceImpl implements ControlStructureService {
     @Override
     @Transactional
     public void saveControlStructure(ControlStructureInsertDto dto) {
-        microStampAuthClient.getAnalysisById(dto.getAnalysisId());
         UUID analysisId = dto.getAnalysisId();
+        microStampAuthClient.getAnalysisById(analysisId);
 
-        List<InteractionReadDto> dbInteractions = interactionService.findByAnalysisId(analysisId);
-        List<ConnectionReadDto> dbConnections = connectionService.findByAnalysisId(analysisId);
-        List<ComponentReadDto> dbComponents = componentService.findByAnalysisId(analysisId);
+        ControlStructureContext context = new ControlStructureContext(
+                dto, componentService, connectionService, interactionService);
 
-        Map<UUID, ComponentReadDto> dbComponentsMap = createIdToComponentMap(dbComponents);
-        Map<UUID, ConnectionReadDto> dbConnectionsMap = createIdToConnectionMap(dbConnections);
+        ComponentStructureSync componentSync = new ComponentStructureSync(componentService);
+        ConnectionStructureSync connectionSync = new ConnectionStructureSync(connectionService);
+        InteractionStructureSync interactionSync = new InteractionStructureSync(interactionService);
 
-        List<FacadeComponentInsertDto> incomingNewComponents = new LinkedList<>();
-        List<FacadeComponentInsertDto> incomingExistingComponents = new LinkedList<>();
-        Set<UUID> incomingExistingComponentsIds = new HashSet<>();
-        storeIncomingComponents(dto, incomingExistingComponentsIds, incomingNewComponents, incomingExistingComponents);
+        componentSync.createComponentCodeToIdMap(context);
+        componentSync.saveNewComponents(context);
+        componentSync.updateExistingComponents(context);
 
-        List<FacadeConnectionInsertDto> incomingNewConnections = new LinkedList<>();
-        List<FacadeConnectionInsertDto> incomingExistingConnections = new LinkedList<>();
-        Set<UUID> incomingExistingConnectionsIds = new HashSet<>();
-        storeIncomingConnections(dto, incomingExistingConnectionsIds, incomingNewConnections, incomingExistingConnections);
+        connectionSync.saveConnections(context, interactionSync);
+        connectionSync.updateExistingConnections(context, interactionSync);
 
-        Set<UUID> incomingExistingInteractionsIds = new HashSet<>();
-        storeIncomingInteractions(dto, incomingExistingInteractionsIds);
-
-        Map<String, UUID> componentCodeToIdMap = createComponentCodeToIdMap(
-                analysisId, incomingExistingComponents, incomingNewComponents);
-
-        updateExistingComponents(incomingExistingComponents, dbComponentsMap, componentCodeToIdMap);
-
-        saveConnections(incomingNewConnections, analysisId, componentCodeToIdMap);
-        updateExistingConnections(incomingExistingConnections, dbConnectionsMap, componentCodeToIdMap);
-
-        cleanUpRemovedInteractions(dbInteractions, incomingExistingInteractionsIds);
-        cleanUpRemovedConnections(dbConnections, incomingExistingConnectionsIds);
-        cleanUpRemovedComponents(dbComponents, incomingExistingComponentsIds);
-    }
-
-    private Map<UUID, ComponentReadDto> createIdToComponentMap(List<ComponentReadDto> dbComponents){
-        Map<UUID, ComponentReadDto> dbComponentsMap = new HashMap<>();
-
-        for (ComponentReadDto dbComp : dbComponents) {
-            dbComponentsMap.put(dbComp.getId(), dbComp);
-        }
-
-        return dbComponentsMap;
-    }
-
-    private Map<UUID, ConnectionReadDto> createIdToConnectionMap(List<ConnectionReadDto> dbConnections){
-        Map<UUID, ConnectionReadDto> dbConnectionsMap = new HashMap<>();
-
-        for (ConnectionReadDto dbConnection : dbConnections) {
-            dbConnectionsMap.put(dbConnection.getId(), dbConnection);
-        }
-
-        return dbConnectionsMap;
-    }
-
-    private Map<String, UUID> createComponentCodeToIdMap(
-            UUID analysisId,
-            List<FacadeComponentInsertDto> incomingExistingComponents,
-            List<FacadeComponentInsertDto> incomingNewComponents){
-
-        Map<String, UUID> componentCodeToIdMap = new HashMap<>();
-
-        for (FacadeComponentInsertDto existingDto : incomingExistingComponents) {
-            componentCodeToIdMap.put(existingDto.getCode(), existingDto.getId());
-        }
-        if (!incomingNewComponents.isEmpty()) {
-            saveComponents(incomingNewComponents, analysisId, componentCodeToIdMap);
-        }
-
-        return componentCodeToIdMap;
-    }
-
-    private void saveComponents(List<FacadeComponentInsertDto> components,
-                                UUID analysisId, Map<String, UUID> componentCodeToIdMap) {
-        List<FacadeComponentInsertDto> componentsContainingFather = new ArrayList<>();
-
-        for (FacadeComponentInsertDto facadeComponentDto : components) {
-            ComponentInsertDto insertDto = ControlStructureMapper.toComponentInsertDto(facadeComponentDto, analysisId);
-
-            if (facadeComponentDto.getFatherCode() != null) {
-                componentsContainingFather.add(facadeComponentDto);
-            }
-
-            ComponentReadDto savedComponent = componentService.insert(insertDto);
-            componentCodeToIdMap.put(savedComponent.getCode(), savedComponent.getId());
-        }
-
-        for (FacadeComponentInsertDto facadeComponentDto : componentsContainingFather) {
-            UUID childId = componentCodeToIdMap.get(facadeComponentDto.getCode());
-            UUID fatherId = componentCodeToIdMap.get(facadeComponentDto.getFatherCode());
-
-            if (childId != null && fatherId != null) {
-                ComponentUpdateDto updateDto = ControlStructureMapper.toComponentUpdateDto(facadeComponentDto, fatherId);
-
-                componentService.update(childId, updateDto);
-            }
-        }
-    }
-
-    private void saveConnections(List<FacadeConnectionInsertDto> connections,
-                                 UUID analysisId, Map<String, UUID> componentMap) {
-        for (FacadeConnectionInsertDto facadeConnectionInsertDto : connections) {
-            UUID sourceId = componentMap.get(facadeConnectionInsertDto.getSourceCode());
-            UUID targetId = componentMap.get(facadeConnectionInsertDto.getTargetCode());
-
-            if (sourceId != null && targetId != null) {
-                ConnectionInsertDto connectionInsertDto = ControlStructureMapper.toConnectionInsertDto(facadeConnectionInsertDto, sourceId, targetId, analysisId);
-
-                ConnectionReadDto savedConnection = connectionService.insert(connectionInsertDto);
-
-                if (facadeConnectionInsertDto.getInteractions() != null && !facadeConnectionInsertDto.getInteractions().isEmpty()) {
-                    saveInteractions(facadeConnectionInsertDto, savedConnection.getId());
-                }
-            }
-        }
-    }
-
-    private void saveInteractions(FacadeConnectionInsertDto facadeConnectionInsertDto,
-                                  UUID connectionId) {
-        for (FacadeInteractionInsertDto facadeInteractionInsertDto : facadeConnectionInsertDto.getInteractions()) {
-            if (facadeInteractionInsertDto.getId() == null) {
-                InteractionInsertDto interactionInsertDto = ControlStructureMapper.toInteractionInsertDto(facadeInteractionInsertDto, connectionId);
-                interactionService.insert(interactionInsertDto);
-            } else {
-                updateExistingInteraction(facadeInteractionInsertDto);
-            }
-        }
-    }
-
-    private void storeIncomingComponents(
-            ControlStructureInsertDto dto,
-            Set<UUID> ExistingComponentsIds,
-            List<FacadeComponentInsertDto> incomingNewComponents,
-            List<FacadeComponentInsertDto> incomingExistingComponents) {
-
-        if (dto.getComponents() != null) {
-            for (FacadeComponentInsertDto component : dto.getComponents()) {
-                UUID id = component.getId();
-                if (id != null) {
-                    ExistingComponentsIds.add(id);
-                    incomingExistingComponents.add(component);
-                } else {
-                    incomingNewComponents.add(component);
-                }
-            }
-        }
-    }
-
-    private void storeIncomingConnections(
-            ControlStructureInsertDto dto,
-            Set<UUID> incomingExistingConnectionsIds,
-            List<FacadeConnectionInsertDto> incomingNewConnections,
-            List<FacadeConnectionInsertDto> incomingExistingConnections) {
-
-        for (FacadeConnectionInsertDto connection : dto.getConnections()) {
-            UUID connectionId = connection.getId();
-
-            if (connectionId != null) {
-                incomingExistingConnectionsIds.add(connectionId);
-                incomingExistingConnections.add(connection);
-            } else {
-                incomingNewConnections.add(connection);
-            }
-        }
-    }
-
-    private void storeIncomingInteractions(ControlStructureInsertDto dto,
-                                           Set<UUID> incomingExistingInteractionsIds) {
-        for (FacadeConnectionInsertDto connection : dto.getConnections()) {
-            if (connection.getInteractions() != null && !connection.getInteractions().isEmpty()) {
-                for (FacadeInteractionInsertDto interaction : connection.getInteractions()) {
-                    UUID interactionId = interaction.getId();
-
-                    if (interactionId != null) {
-                        incomingExistingInteractionsIds.add(interactionId);
-                    }
-                }
-            }
-        }
-    }
-
-    private void updateExistingComponents(
-            List<FacadeComponentInsertDto> incomingExistingComponents,
-            Map<UUID, ComponentReadDto> dbComponentsMap,
-            Map<String, UUID> componentCodeToIdMap) {
-
-        for (FacadeComponentInsertDto existingDto : incomingExistingComponents) {
-
-            ComponentReadDto dbComponent = dbComponentsMap.get(existingDto.getId());
-            Boolean hasComponentChanged = hasComponentChanged(existingDto, dbComponent);
-
-            if (hasComponentChanged) {
-
-                UUID fatherId = null;
-
-                if (existingDto.getFatherCode() != null && !existingDto.getFatherCode().isBlank()) {
-                    fatherId = componentCodeToIdMap.get(existingDto.getFatherCode());
-                }
-
-                ComponentUpdateDto updateDto = ControlStructureMapper.toComponentUpdateDto(existingDto, fatherId);
-
-                componentService.update(existingDto.getId(), updateDto);
-            }
-        }
-    }
-
-
-    private void updateExistingConnections(
-            List<FacadeConnectionInsertDto> incomingExistingConnections,
-            Map<UUID, ConnectionReadDto> dbConnectionsMap,
-            Map<String, UUID> componentCodeToIdMap) {
-
-        for (FacadeConnectionInsertDto existingDto : incomingExistingConnections) {
-
-            UUID sourceId = componentCodeToIdMap.get(existingDto.getSourceCode());
-            UUID targetId = componentCodeToIdMap.get(existingDto.getTargetCode());
-
-            if (sourceId == null || targetId == null) {
-                throw new Step2NotFoundException("Component Source/Target not found for connection",
-                        existingDto.getCode());
-            }
-
-            Boolean hasConnectionChanged = hasConnectionChanged(existingDto,
-                    dbConnectionsMap.get(existingDto.getId()));
-
-            if (hasConnectionChanged) {
-                ConnectionUpdateDto updateDto = ControlStructureMapper.toConnectionUpdateDto(existingDto, sourceId, targetId);
-
-                connectionService.update(existingDto.getId(), updateDto);
-            }
-
-            List<FacadeInteractionInsertDto> interactions = existingDto.getInteractions();
-            if (interactions != null && !interactions.isEmpty()) {
-                saveInteractions(existingDto, existingDto.getId());
-            }
-        }
-    }
-
-    private void updateExistingInteraction(FacadeInteractionInsertDto facadeInteractionInsertDto) {
-        InteractionUpdateDto interactionUpdateDto = ControlStructureMapper.toInteractionUpdateDto(facadeInteractionInsertDto);
-
-        interactionService.update(facadeInteractionInsertDto.getId(), interactionUpdateDto);
-    }
-
-    private void cleanUpRemovedInteractions(List<InteractionReadDto> dbInteractions,
-                                            Set<UUID> incomingExistingInteractionsIds) {
-        for (InteractionReadDto dbInteraction : dbInteractions) {
-            if (!incomingExistingInteractionsIds.contains(dbInteraction.getId())) {
-                interactionService.deleteDirectlyById(dbInteraction.getId());
-            }
-        }
-    }
-
-    private void cleanUpRemovedConnections(List<ConnectionReadDto> dbConnections,
-                                           Set<UUID> incomingExistingConnectionsIds) {
-        for (ConnectionReadDto dbConnection : dbConnections) {
-            if (!incomingExistingConnectionsIds.contains(dbConnection.getId())) {
-                connectionService.delete(dbConnection.getId());
-            }
-        }
-    }
-
-    private void cleanUpRemovedComponents(List<ComponentReadDto> dbComponents,
-                                          Set<UUID> incomingExistingComponentsIds) {
-        for (ComponentReadDto dbComponent : dbComponents) {
-            if (!incomingExistingComponentsIds.contains(dbComponent.getId())) {
-                componentService.delete(dbComponent.getId());
-            }
-        }
-    }
-
-    private Boolean hasComponentChanged(FacadeComponentInsertDto incomingDto,
-                                        ComponentReadDto dbDto) {
-
-        String fatherCode = null;
-        if (dbDto.getFather() != null)
-            fatherCode = dbDto.getFather().getCode();
-
-        return !Objects.equals(incomingDto.getCode(), dbDto.getCode())
-                || !Objects.equals(incomingDto.getBorder(), dbDto.getBorder())
-                || !Objects.equals(incomingDto.getFatherCode(), fatherCode)
-                || !Objects.equals(incomingDto.getIsVisible(), dbDto.getIsVisible())
-                || !Objects.equals(incomingDto.getName(), dbDto.getName())
-                || !Objects.equals(incomingDto.getType().getFormattedName(), dbDto.getType());
-    }
-
-    private Boolean hasConnectionChanged(FacadeConnectionInsertDto incomingDto,
-                                         ConnectionReadDto dbDto) {
-        return !Objects.equals(incomingDto.getCode(), dbDto.getCode())
-                || !Objects.equals(incomingDto.getSourceCode(), dbDto.getSource().getCode())
-                || !Objects.equals(incomingDto.getTargetCode(), dbDto.getTarget().getCode())
-                || !Objects.equals(incomingDto.getStyle(), dbDto.getStyle());
+        interactionSync.cleanUpRemoved(context);
+        connectionSync.cleanUpRemoved(context);
+        componentSync.cleanUpRemoved(context);
     }
 }
