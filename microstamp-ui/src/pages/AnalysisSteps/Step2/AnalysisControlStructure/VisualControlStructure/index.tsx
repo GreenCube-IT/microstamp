@@ -144,11 +144,15 @@ function VisualControlStructure() {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
 
+		const paperContainer = document.createElement("div");
+		paperContainer.className = styles.paper_host;
+		canvas.appendChild(paperContainer);
+
 		const graph = new joint.dia.Graph({}, { cellNamespace: joint.shapes });
 		graphRef.current = graph;
 
 		const paper = new joint.dia.Paper({
-			el: canvas,
+			el: paperContainer,
 			model: graph,
 			width: canvas.clientWidth,
 			height: canvas.clientHeight,
