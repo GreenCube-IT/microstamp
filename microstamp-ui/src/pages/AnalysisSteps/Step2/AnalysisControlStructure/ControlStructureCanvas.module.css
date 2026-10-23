@@ -10,6 +10,18 @@
 	background: var(--color-dark);
 }
 
+.workspace_hidden {
+	display: none;
+}
+
+.editor_loading {
+	display: grid;
+	flex: 1;
+	place-items: center;
+	color: var(--color-light-gray);
+	font-size: 1.4rem;
+}
+
 .workspace_header {
 	display: flex;
 	flex-direction: column;
@@ -25,40 +37,6 @@
 		color: var(--color-light-gray);
 		font-size: 1.3rem;
 	}
-}
-
-.canvas_host {
-	display: grid;
-	flex: 1;
-	min-height: 0;
-	place-items: center;
-	overflow: hidden;
-	border: 1px solid var(--color-gray);
-	border-radius: var(--radius1);
-	background-color: #f5f5f5;
-	background-image: radial-gradient(#b8b8b8 1px, transparent 1px);
-	background-position: 0 0;
-	background-size: 2rem 2rem;
-}
-
-.placeholder {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.8rem;
-	padding: 2.4rem;
-	text-align: center;
-}
-
-.placeholder_title {
-	color: var(--color-dark);
-	font-size: 2rem;
-	font-weight: 600;
-}
-
-.placeholder_message {
-	color: var(--color-gray);
-	font-size: 1.4rem;
 }
 
 @media (max-width: 600px) {

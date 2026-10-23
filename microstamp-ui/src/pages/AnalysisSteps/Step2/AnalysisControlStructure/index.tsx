@@ -5,7 +5,7 @@ import PageActions from "@components/PageActions";
 import { getStep2PDF } from "@http/Export";
 import { IAnalysisReadDto } from "@interfaces/IAnalysis";
 import { ISteps } from "@interfaces/ISteps";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { BiExport as PdfIcon } from "react-icons/bi";
 import { useOutletContext } from "react-router-dom";
 import ControlStructureModeSwitch from "../ControlStructureModeSwitch";
@@ -14,12 +14,19 @@ import ComponentsContainer from "./ComponentsContainer";
 import ConnectionsContainer from "./ConnectionsContainer";
 import ControlStructureImage from "./ControlStructureImage";
 
+const VisualControlStructure = lazy(() => import("./VisualControlStructure"));
+
 function AnalysisControlStructure() {
 	/* - - - - - - - - - - - - - - - - - - - - - - */
 	// * Handle Get Analysis
 
 	const analysis: IAnalysisReadDto = useOutletContext();
 	const [mode, setMode] = useState<"forms" | "visual">("forms");
+	const [visualEditorStarted, setVisualEditorStarted] = useState(false);
+	const handleModeChange = (nextMode: "forms" | "visual") => {
+		setMode(nextMode);
+		if (nextMode === "visual") setVisualEditorStarted(true);
+	};
 
 	/* - - - - - - - - - - - - - - - - - - - - - - */
 	// * Handle Get Step 2 PDF
@@ -32,9 +39,9 @@ function AnalysisControlStructure() {
 	return (
 		<>
 			<AnalysisHeader analysis={analysis} step={ISteps.STEP_2} />
-			<ControlStructureModeSwitch mode={mode} onModeChange={setMode} />
+			<ControlStructureModeSwitch mode={mode} onModeChange={handleModeChange} />
 
-			{mode === "forms" ? (
+			{mode === "forms" && (
 				<>
 					<ComponentsContainer analysisId={analysis.id} />
 					<ConnectionsContainer analysisId={analysis.id} />
@@ -53,23 +60,24 @@ function AnalysisControlStructure() {
 						/>
 					</PageActions>
 				</>
-			) : (
-				<main className={canvasStyles.workspace} aria-labelledby="visual-workspace-title">
-					<div className={canvasStyles.workspace_header}>
-						<h1 id="visual-workspace-title">Visual control structure</h1>
-						<p>Build and navigate the control structure in a visual workspace.</p>
-					</div>
-					<div
-						className={canvasStyles.canvas_host}
-						role="region"
-						aria-label="Visual control structure canvas"
-					>
-						<div className={canvasStyles.placeholder}>
-							<span className={canvasStyles.placeholder_title}>Canvas workspace</span>
-						</div>
-					</div>
-				</main>
 			)}
+			<main
+				className={`${canvasStyles.workspace} ${
+					mode === "visual" ? "" : canvasStyles.workspace_hidden
+				}`}
+				aria-labelledby="visual-workspace-title"
+				aria-hidden={mode !== "visual"}
+			>
+				<div className={canvasStyles.workspace_header}>
+					<h1 id="visual-workspace-title">Visual control structure</h1>
+					<p>Model components and their control or feedback interactions.</p>
+				</div>
+				{visualEditorStarted && (
+					<Suspense fallback={<p className={canvasStyles.editor_loading}>Loading visual editor…</p>}>
+						<VisualControlStructure />
+					</Suspense>
+				)}
+			</main>
 		</>
 	);
 }
