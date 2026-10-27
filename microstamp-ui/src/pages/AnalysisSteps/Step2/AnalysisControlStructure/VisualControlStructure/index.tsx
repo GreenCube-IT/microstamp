@@ -78,6 +78,54 @@ const componentColors: Record<IComponentType, string> = {
 	[IComponentType.ENVIRONMENT]: "#e2e8f0"
 };
 
+type AnchorSide = "top" | "bottom" | "left" | "right";
+
+interface SideRatioAnchor {
+	side: AnchorSide;
+	ratio: number;
+}
+
+function clamp(value: number) {
+	return Math.max(0, Math.min(1, value));
+}
+
+function sideRatioToPoint(
+	bbox: { x: number; y: number; width: number; height: number },
+	{ side, ratio }: SideRatioAnchor
+) {
+	const relativePosition = clamp(ratio);
+	switch (side) {
+		case "top":
+			return { x: bbox.x + bbox.width * relativePosition, y: bbox.y };
+		case "bottom":
+			return { x: bbox.x + bbox.width * relativePosition, y: bbox.y + bbox.height };
+		case "left":
+			return { x: bbox.x, y: bbox.y + bbox.height * relativePosition };
+		case "right":
+			return { x: bbox.x + bbox.width, y: bbox.y + bbox.height * relativePosition };
+	}
+}
+
+function pointToSideRatio(
+	bbox: { x: number; y: number; width: number; height: number },
+	point: { x: number; y: number }
+): SideRatioAnchor {
+	const distances = {
+		top: Math.abs(point.y - bbox.y),
+		bottom: Math.abs(point.y - (bbox.y + bbox.height)),
+		left: Math.abs(point.x - bbox.x),
+		right: Math.abs(point.x - (bbox.x + bbox.width))
+	};
+	const side = (Object.keys(distances) as AnchorSide[]).reduce((nearest, current) =>
+		distances[current] < distances[nearest] ? current : nearest
+	);
+	const ratio =
+		side === "top" || side === "bottom"
+			? (point.x - bbox.x) / bbox.width
+			: (point.y - bbox.y) / bbox.height;
+	return { side, ratio: clamp(ratio) };
+}
+
 function getDiagramData(cell: joint.dia.Cell): DiagramData | null {
 	const data: unknown = cell.get("data");
 	if (!data || typeof data !== "object" || !("kind" in data)) return null;
@@ -151,6 +199,19 @@ function VisualControlStructure() {
 		const graph = new joint.dia.Graph({}, { cellNamespace: joint.shapes });
 		graphRef.current = graph;
 
+		Object.assign(joint.anchors, {
+			sideRatio: (
+				endView: joint.dia.CellView,
+				_magnet: SVGElement,
+				_reference: joint.g.Point | SVGElement,
+				args: SideRatioAnchor
+			) => {
+				const bbox = endView.model.getBBox();
+				const point = sideRatioToPoint(bbox, args);
+				return new joint.g.Point(point.x, point.y);
+			}
+		});
+
 		const paper = new joint.dia.Paper({
 			el: paperContainer,
 			model: graph,
@@ -209,6 +270,7 @@ function VisualControlStructure() {
 			const current = selectedCellRef.current;
 			if (current) {
 				paper.findViewByModel(current)?.unhighlight();
+				if (current.isLink()) paper.findViewByModel(current)?.removeTools();
 			}
 			selectedCellRef.current = null;
 			setSelectedId(null);
@@ -217,7 +279,10 @@ function VisualControlStructure() {
 
 		const selectCell = (cell: joint.dia.Cell) => {
 			const previous = selectedCellRef.current;
-			if (previous) paper.findViewByModel(previous)?.unhighlight();
+			if (previous) {
+				paper.findViewByModel(previous)?.unhighlight();
+				if (previous.isLink()) paper.findViewByModel(previous)?.removeTools();
+			}
 
 			selectedCellRef.current = cell;
 			setSelectedId(cell.id.toString());
@@ -246,12 +311,80 @@ function VisualControlStructure() {
 					}
 				}
 			});
+			if (cell.isLink()) addAnchorTools(cell);
+		};
+
+		const setSideRatioAnchor = (linkView: joint.dia.LinkView, end: joint.dia.LinkEnd) => {
+			const endView = linkView.getEndView(end);
+			if (!endView || !endView.model.isElement()) return;
+
+			const bbox = endView.model.getBBox();
+			const point = linkView.getEndAnchor(end);
+			const anchor = pointToSideRatio(bbox, point);
+			linkView.model.prop(`${end}/anchor`, {
+				name: "sideRatio",
+				args: anchor
+			});
+		};
+
+		const createAnchorTool = (end: joint.dia.LinkEnd) => {
+			const options = {
+				snap: (point: joint.dia.Point, view: joint.dia.CellView) => {
+					const model = view.model;
+					if (!model.isElement()) return point;
+					return sideRatioToPoint(model.getBBox(), pointToSideRatio(model.getBBox(), point));
+				},
+				anchor: (point: joint.dia.Point, view: joint.dia.CellView) => {
+					const model = view.model;
+					return {
+						name: "sideRatio",
+						args: model.isElement()
+							? pointToSideRatio(model.getBBox(), point)
+							: { side: "top", ratio: 0.5 }
+					};
+				},
+				customAnchorAttributes: {
+					r: 6,
+					fill: "#3b82f6",
+					stroke: "#ffffff",
+					"stroke-width": 2,
+					cursor: "grab"
+				},
+				defaultAnchorAttributes: {
+					r: 6,
+					fill: "#64748b",
+					stroke: "#ffffff",
+					"stroke-width": 2,
+					cursor: "grab"
+				},
+				resetAnchor: false,
+				restrictArea: false,
+				scale: 1
+			};
+			return end === "source"
+				? new joint.linkTools.SourceAnchor(options)
+				: new joint.linkTools.TargetAnchor(options);
+		};
+
+		const addAnchorTools = (link: joint.dia.Link) => {
+			const linkView = paper.findViewByModel(link);
+			if (!linkView) return;
+			linkView.removeTools();
+			linkView.addTools(
+				new joint.dia.ToolsView({
+					tools: [createAnchorTool("source"), createAnchorTool("target")]
+				})
+			);
 		};
 
 		paper.on("blank:pointerdown", deselect);
 		paper.on("element:pointerclick", view => selectCell(view.model));
 		paper.on("link:pointerclick", view => selectCell(view.model));
-		paper.on("link:connect", linkView => selectCell(linkView.model));
+		paper.on("link:connect", (linkView, _event, _elementView, _magnet, arrowhead) => {
+			setSideRatioAnchor(linkView, arrowhead);
+			setSideRatioAnchor(linkView, arrowhead === "source" ? "target" : "source");
+			selectCell(linkView.model);
+		});
 
 		const resizeObserver = new ResizeObserver(() => {
 			paper.setDimensions(canvas.clientWidth, canvas.clientHeight);
@@ -400,7 +533,10 @@ function VisualControlStructure() {
 
 	const selectCellById = (cell: joint.dia.Cell) => {
 		const previous = selectedCellRef.current;
-		if (previous) paperRef.current?.findViewByModel(previous)?.unhighlight();
+		if (previous) {
+			paperRef.current?.findViewByModel(previous)?.unhighlight();
+			if (previous.isLink()) paperRef.current?.findViewByModel(previous)?.removeTools();
+		}
 		selectedCellRef.current = cell;
 		setSelectedId(cell.id.toString());
 		const data = getDiagramData(cell);
