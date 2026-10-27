@@ -21,6 +21,8 @@ interface ComponentData {
 		type: IComponentType;
 		border: IComponentBorder;
 		isVisible: boolean;
+		width: number;
+		height: number;
 	};
 }
 
@@ -89,6 +91,15 @@ interface SideRatioAnchor {
 
 function clamp(value: number) {
 	return Math.max(0, Math.min(1, value));
+}
+
+function isValidComponentSize(width: number, height: number) {
+	return (
+		Number.isInteger(width) &&
+		Number.isInteger(height) &&
+		width >= 20 &&
+		height >= 20
+	);
 }
 
 function sideRatioToPoint(
@@ -512,7 +523,9 @@ function VisualControlStructure() {
 					code,
 					type,
 					border: IComponentBorder.SOLID,
-					isVisible: true
+					isVisible: true,
+					width: size.width,
+					height: size.height
 				}
 			},
 			attrs: {
@@ -574,6 +587,8 @@ function VisualControlStructure() {
 		if (!cell || !draft || !graph) return;
 
 		if (draft.kind === "component" && cell.isElement()) {
+			if (!isValidComponentSize(draft.width, draft.height)) return;
+
 			const nextData: ComponentData = {
 				kind: "component",
 				component: {
@@ -581,10 +596,13 @@ function VisualControlStructure() {
 					code: draft.code,
 					type: draft.type,
 					border: draft.border,
-					isVisible: draft.isVisible
+					isVisible: draft.isVisible,
+					width: draft.width,
+					height: draft.height
 				}
 			};
 			cell.set("data", nextData);
+			cell.resize(draft.width, draft.height);
 			cell.attr({
 				body: {
 					fill: componentColors[draft.type],
@@ -751,6 +769,45 @@ function VisualControlStructure() {
 								}
 							/>
 						</label>
+						<div className={styles.dimensions_fields}>
+							<label>
+								Width (px)
+								<input
+									type="number"
+									min={20}
+									step={1}
+									value={draft.width}
+									onChange={event =>
+										setDraft(current =>
+											current?.kind === "component"
+												? { ...current, width: Number(event.target.value) }
+												: current
+										)
+									}
+								/>
+							</label>
+							<label>
+								Height (px)
+								<input
+									type="number"
+									min={20}
+									step={1}
+									value={draft.height}
+									onChange={event =>
+										setDraft(current =>
+											current?.kind === "component"
+												? { ...current, height: Number(event.target.value) }
+												: current
+										)
+									}
+								/>
+							</label>
+						</div>
+						{!isValidComponentSize(draft.width, draft.height) && (
+							<p className={styles.properties_hint}>
+								Width and height must be whole numbers of at least 20 px.
+							</p>
+						)}
 						<label>
 							Type
 							<select
@@ -787,7 +844,12 @@ function VisualControlStructure() {
 								<option value={IComponentBorder.ETCHED}>Etched</option>
 							</select>
 						</label>
-						<button type="button" className={styles.apply_button} onClick={applyDraft}>
+						<button
+							type="button"
+							className={styles.apply_button}
+							onClick={applyDraft}
+							disabled={!isValidComponentSize(draft.width, draft.height)}
+						>
 							Apply
 						</button>
 					</div>
