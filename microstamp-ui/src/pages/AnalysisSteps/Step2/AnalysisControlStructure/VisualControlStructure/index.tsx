@@ -16,6 +16,8 @@ import "jointjs/dist/joint.min.css";
 interface ComponentData {
 	kind: "component";
 	component: {
+		backendId?: string;
+		clientId: string;
 		name: string;
 		code: string;
 		type: IComponentType;
@@ -29,6 +31,8 @@ interface ComponentData {
 interface ConnectionData {
 	kind: "connection";
 	connection: {
+		backendId?: string;
+		clientId: string;
 		code: string;
 		style: IConnectionStyle;
 		interactions: InteractionData[];
@@ -36,7 +40,8 @@ interface ConnectionData {
 }
 
 interface InteractionData {
-	id?: string;
+	backendId?: string;
+	clientId: string;
 	code: string;
 	name: string;
 	interactionType: IInteractionType;
@@ -172,7 +177,19 @@ function nextInteractionCode(interactions: InteractionData[]) {
 	return `In.${String(maxCode + 1).padStart(2, "0")}`;
 }
 
+function createClientId() {
+	return crypto.randomUUID();
+}
+
 function setConnectionLabels(link: joint.dia.Link, interactions: InteractionData[]) {
+	const existingPositions = new Map<string, joint.dia.Link.Label["position"]>();
+	link.labels().forEach(label => {
+		const clientId = label.attrs?.text?.["data-interaction-client-id"];
+		if (typeof clientId === "string" && label.position !== undefined) {
+			existingPositions.set(clientId, label.position);
+		}
+	});
+
 	link.labels(
 		interactions.map((interaction, index) => {
 			const labelCount = interactions.length;
@@ -182,6 +199,7 @@ function setConnectionLabels(link: joint.dia.Link, interactions: InteractionData
 				attrs: {
 					text: {
 						text: label,
+						"data-interaction-client-id": interaction.clientId,
 						"data-interaction-code": interaction.code,
 						fontSize: 11,
 						fontFamily: "sans-serif",
@@ -195,7 +213,7 @@ function setConnectionLabels(link: joint.dia.Link, interactions: InteractionData
 						ry: 3
 					}
 				},
-				position: {
+				position: existingPositions.get(interaction.clientId) ?? {
 					distance,
 					offset: { x: 0, y: index % 2 === 0 ? -12 : 12 }
 				}
@@ -258,6 +276,7 @@ function VisualControlStructure() {
 			defaultLink: () => {
 				const interactions: InteractionData[] = [
 					{
+						clientId: createClientId(),
 						code: "In.01",
 						name: "",
 						interactionType: IInteractionType.COMMUNICATION_CHANNEL
@@ -268,6 +287,7 @@ function VisualControlStructure() {
 					data: {
 						kind: "connection",
 						connection: {
+							clientId: createClientId(),
 							code: nextCode(graph, "Cn"),
 							style: IConnectionStyle.SOLID,
 							interactions
@@ -322,6 +342,8 @@ function VisualControlStructure() {
 			} else if (data?.kind === "connection") {
 				setDraft({
 					kind: "connection",
+					backendId: data.connection.backendId,
+					clientId: data.connection.clientId,
 					code: data.connection.code,
 					style: data.connection.style,
 					interactions: data.connection.interactions.map(interaction => ({ ...interaction }))
@@ -519,6 +541,7 @@ function VisualControlStructure() {
 			data: {
 				kind: "component",
 				component: {
+					clientId: createClientId(),
 					name,
 					code,
 					type,
@@ -574,6 +597,8 @@ function VisualControlStructure() {
 		} else if (data?.kind === "connection") {
 			setDraft({
 				kind: "connection",
+				backendId: data.connection.backendId,
+				clientId: data.connection.clientId,
 				code: data.connection.code,
 				style: data.connection.style,
 				interactions: data.connection.interactions.map(interaction => ({ ...interaction }))
@@ -592,6 +617,8 @@ function VisualControlStructure() {
 			const nextData: ComponentData = {
 				kind: "component",
 				component: {
+					backendId: draft.backendId,
+					clientId: draft.clientId,
 					name: draft.name,
 					code: draft.code,
 					type: draft.type,
@@ -619,6 +646,8 @@ function VisualControlStructure() {
 			const nextData: ConnectionData = {
 				kind: "connection",
 				connection: {
+					backendId: draft.backendId,
+					clientId: draft.clientId,
 					code: draft.code,
 					style: draft.style,
 					interactions: draft.interactions.map(interaction => ({ ...interaction }))
@@ -887,7 +916,7 @@ function VisualControlStructure() {
 						</label>
 						<div className={styles.section_label}>Interactions</div>
 						{draft.interactions.map((interaction, index) => (
-							<div key={`${interaction.code}-${index}`} className={styles.interaction}>
+							<div key={interaction.clientId} className={styles.interaction}>
 								<div className={styles.interaction_header}>
 									<strong>{interaction.code}</strong>
 									<button
@@ -973,6 +1002,7 @@ function VisualControlStructure() {
 												interactions: [
 													...current.interactions,
 													{
+														clientId: createClientId(),
 														code: nextInteractionCode(current.interactions),
 														name: "",
 														interactionType:
