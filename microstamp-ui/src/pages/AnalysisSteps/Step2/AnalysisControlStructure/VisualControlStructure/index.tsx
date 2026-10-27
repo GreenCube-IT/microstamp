@@ -29,20 +29,22 @@ interface ConnectionData {
 	connection: {
 		code: string;
 		style: IConnectionStyle;
-		interactions: {
-			code: string;
-			name: string;
-			interactionType: IInteractionType;
-		}[];
+		interactions: InteractionData[];
 	};
+}
+
+interface InteractionData {
+	id?: string;
+	code: string;
+	name: string;
+	interactionType: IInteractionType;
 }
 
 type DiagramData = ComponentData | ConnectionData;
 type ComponentDraft = ComponentData["component"] & { kind: "component" };
 type ConnectionDraft = Omit<ConnectionData["connection"], "interactions"> & {
 	kind: "connection";
-	interactionName: string;
-	interactionType: IInteractionType;
+	interactions: InteractionData[];
 };
 type PropertiesDraft = ComponentDraft | ConnectionDraft;
 
@@ -151,30 +153,43 @@ function nextCode(graph: joint.dia.Graph, prefix: "C" | "Cn") {
 	return `${prefix}.${String(maxCode + 1).padStart(2, "0")}`;
 }
 
-function setConnectionLabel(link: joint.dia.Link, name: string) {
+function nextInteractionCode(interactions: InteractionData[]) {
+	const maxCode = interactions.reduce((max, interaction) => {
+		const match = interaction.code.match(/^In\.(\d+)$/);
+		return match ? Math.max(max, Number(match[1])) : max;
+	}, 0);
+	return `In.${String(maxCode + 1).padStart(2, "0")}`;
+}
+
+function setConnectionLabels(link: joint.dia.Link, interactions: InteractionData[]) {
 	link.labels(
-		name.trim()
-			? [
-					{
-						attrs: {
-							text: {
-								text: name.trim(),
-								fontSize: 11,
-								fontFamily: "sans-serif",
-								fill: "#1e293b"
-							},
-							rect: {
-								fill: "#ffffff",
-								stroke: "#cbd5e1",
-								strokeWidth: 1,
-								rx: 3,
-								ry: 3
-							}
-						},
-						position: { distance: 0.5 }
+		interactions.map((interaction, index) => {
+			const labelCount = interactions.length;
+			const distance = (index + 1) / (labelCount + 1);
+			const label = interaction.name.trim() || interaction.code;
+			return {
+				attrs: {
+					text: {
+						text: label,
+						"data-interaction-code": interaction.code,
+						fontSize: 11,
+						fontFamily: "sans-serif",
+						fill: "#1e293b"
+					},
+					rect: {
+						fill: "#ffffff",
+						stroke: "#cbd5e1",
+						strokeWidth: 1,
+						rx: 3,
+						ry: 3
 					}
-				]
-			: []
+				},
+				position: {
+					distance,
+					offset: { x: 0, y: index % 2 === 0 ? -12 : 12 }
+				}
+			};
+		})
 	);
 }
 
@@ -229,21 +244,22 @@ function VisualControlStructure() {
 				sourceView !== targetView &&
 				sourceView.model.isElement() &&
 				targetView.model.isElement(),
-			defaultLink: () =>
-				new joint.shapes.standard.Link({
+			defaultLink: () => {
+				const interactions: InteractionData[] = [
+					{
+						code: "In.01",
+						name: "",
+						interactionType: IInteractionType.COMMUNICATION_CHANNEL
+					}
+				];
+				const link = new joint.shapes.standard.Link({
 					z: 2,
 					data: {
 						kind: "connection",
 						connection: {
 							code: nextCode(graph, "Cn"),
 							style: IConnectionStyle.SOLID,
-							interactions: [
-								{
-									code: "In.01",
-									name: "",
-									interactionType: IInteractionType.COMMUNICATION_CHANNEL
-								}
-							]
+							interactions
 						}
 					},
 					attrs: {
@@ -259,7 +275,10 @@ function VisualControlStructure() {
 							sourceMarker: { type: "none" }
 						}
 					}
-				}),
+				});
+				setConnectionLabels(link, interactions);
+				return link;
+			},
 			cellViewNamespace: joint.shapes,
 			interactive: cellView =>
 				cellView.model.isLink() ? { vertexAdd: true, labelMove: true } : true
@@ -290,14 +309,11 @@ function VisualControlStructure() {
 			if (data?.kind === "component") {
 				setDraft({ kind: "component", ...data.component });
 			} else if (data?.kind === "connection") {
-				const interaction = data.connection.interactions[0];
 				setDraft({
 					kind: "connection",
 					code: data.connection.code,
 					style: data.connection.style,
-					interactionName: interaction?.name || "",
-					interactionType:
-						interaction?.interactionType || IInteractionType.COMMUNICATION_CHANNEL
+					interactions: data.connection.interactions.map(interaction => ({ ...interaction }))
 				});
 			} else {
 				setDraft(null);
@@ -543,14 +559,11 @@ function VisualControlStructure() {
 		if (data?.kind === "component") {
 			setDraft({ kind: "component", ...data.component });
 		} else if (data?.kind === "connection") {
-			const interaction = data.connection.interactions[0];
 			setDraft({
 				kind: "connection",
 				code: data.connection.code,
 				style: data.connection.style,
-				interactionName: interaction?.name || "",
-				interactionType:
-					interaction?.interactionType || IInteractionType.COMMUNICATION_CHANNEL
+				interactions: data.connection.interactions.map(interaction => ({ ...interaction }))
 			});
 		}
 	};
@@ -590,13 +603,7 @@ function VisualControlStructure() {
 				connection: {
 					code: draft.code,
 					style: draft.style,
-					interactions: [
-						{
-							code: "In.01",
-							name: draft.interactionName,
-							interactionType: draft.interactionType
-						}
-					]
+					interactions: draft.interactions.map(interaction => ({ ...interaction }))
 				}
 			};
 			cell.set("data", nextData);
@@ -608,7 +615,7 @@ function VisualControlStructure() {
 						? "8 4"
 						: "2 2"
 			);
-			setConnectionLabel(cell, draft.interactionName);
+			setConnectionLabels(cell, draft.interactions);
 		}
 	};
 
@@ -816,42 +823,108 @@ function VisualControlStructure() {
 								<option value={IConnectionStyle.ETCHED}>Etched</option>
 							</select>
 						</label>
-						<div className={styles.section_label}>Interaction</div>
-						<label>
-							Name
-							<input
-								value={draft.interactionName}
-								onChange={event =>
-									setDraft(current =>
-										current?.kind === "connection"
-											? { ...current, interactionName: event.target.value }
-											: current
-									)
-								}
-							/>
-						</label>
-						<label>
-							Type
-							<select
-								value={draft.interactionType}
-								onChange={event =>
-									setDraft(current =>
-										current?.kind === "connection"
-											? {
-													...current,
-													interactionType: event.target.value as IInteractionType
-												}
-											: current
-									)
-								}
-							>
-								{interactionTypes.map(type => (
-									<option key={type.value} value={type.value}>
-										{type.label}
-									</option>
-								))}
-							</select>
-						</label>
+						<div className={styles.section_label}>Interactions</div>
+						{draft.interactions.map((interaction, index) => (
+							<div key={`${interaction.code}-${index}`} className={styles.interaction}>
+								<div className={styles.interaction_header}>
+									<strong>{interaction.code}</strong>
+									<button
+										type="button"
+										className={styles.remove_interaction}
+										onClick={() =>
+											setDraft(current =>
+												current?.kind === "connection"
+													? {
+															...current,
+															interactions: current.interactions.filter(
+																(_, interactionIndex) => interactionIndex !== index
+															)
+														}
+													: current
+											)
+										}
+										aria-label={`Remove interaction ${interaction.code}`}
+									>
+										<DeleteIcon />
+									</button>
+								</div>
+								<label>
+									Name
+									<input
+										value={interaction.name}
+										onChange={event =>
+											setDraft(current =>
+												current?.kind === "connection"
+													? {
+															...current,
+															interactions: current.interactions.map((item, itemIndex) =>
+																itemIndex === index
+																	? { ...item, name: event.target.value }
+																	: item
+															)
+														}
+													: current
+											)
+										}
+									/>
+								</label>
+								<label>
+									Type
+									<select
+										value={interaction.interactionType}
+										onChange={event =>
+											setDraft(current =>
+												current?.kind === "connection"
+													? {
+															...current,
+															interactions: current.interactions.map((item, itemIndex) =>
+																itemIndex === index
+																	? {
+																			...item,
+																			interactionType: event.target
+																				.value as IInteractionType
+																		}
+																	: item
+															)
+														}
+													: current
+											)
+										}
+									>
+										{interactionTypes.map(type => (
+											<option key={type.value} value={type.value}>
+												{type.label}
+											</option>
+										))}
+									</select>
+								</label>
+							</div>
+						))}
+						<button
+							type="button"
+							className={styles.add_interaction}
+							onClick={() =>
+								setDraft(current =>
+									current?.kind === "connection"
+										? {
+												...current,
+												interactions: [
+													...current.interactions,
+													{
+														code: nextInteractionCode(current.interactions),
+														name: "",
+														interactionType:
+															IInteractionType.COMMUNICATION_CHANNEL
+													}
+												]
+											}
+										: current
+								)
+							}
+						>
+							<AddIcon />
+							Add interaction
+						</button>
 						<button type="button" className={styles.apply_button} onClick={applyDraft}>
 							Apply
 						</button>
