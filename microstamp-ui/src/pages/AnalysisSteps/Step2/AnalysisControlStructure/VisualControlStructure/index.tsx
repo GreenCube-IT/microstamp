@@ -22,6 +22,7 @@ interface ComponentData {
 		code: string;
 		type: IComponentType;
 		border: IComponentBorder;
+		fatherClientId: string | null;
 		isVisible: boolean;
 		width: number;
 		height: number;
@@ -151,6 +152,49 @@ function getDiagramData(cell: joint.dia.Cell): DiagramData | null {
 	return diagramData.kind === "component" || diagramData.kind === "connection"
 		? diagramData
 		: null;
+}
+
+function getComponentDescendantIds(graph: joint.dia.Graph, componentClientId: string) {
+	const descendantIds = new Set<string>();
+	const pendingIds = [componentClientId];
+
+	while (pendingIds.length > 0) {
+		const parentId = pendingIds.pop();
+		if (!parentId) continue;
+
+		graph.getCells().forEach(cell => {
+			const data = getDiagramData(cell);
+			if (
+				data?.kind === "component" &&
+				data.component.fatherClientId === parentId &&
+				!descendantIds.has(data.component.clientId)
+			) {
+				descendantIds.add(data.component.clientId);
+				pendingIds.push(data.component.clientId);
+			}
+		});
+	}
+
+	return descendantIds;
+}
+
+function removeDiagramCell(graph: joint.dia.Graph, cell: joint.dia.Cell) {
+	const data = getDiagramData(cell);
+	if (data?.kind === "component") {
+		graph.getCells().forEach(candidate => {
+			const candidateData = getDiagramData(candidate);
+			if (
+				candidateData?.kind === "component" &&
+				candidateData.component.fatherClientId === data.component.clientId
+			) {
+				candidate.set("data", {
+					...candidateData,
+					component: { ...candidateData.component, fatherClientId: null }
+				});
+			}
+		});
+	}
+	cell.remove();
 }
 
 function nextCode(graph: joint.dia.Graph, prefix: "C" | "Cn") {
@@ -492,7 +536,7 @@ function VisualControlStructure() {
 			if (target.matches("input, select, textarea")) return;
 			if (event.key === "Escape") deselect();
 			if ((event.key === "Delete" || event.key === "Backspace") && selectedCellRef.current) {
-				selectedCellRef.current.remove();
+				removeDiagramCell(graph, selectedCellRef.current);
 				deselect();
 			}
 		};
@@ -546,6 +590,7 @@ function VisualControlStructure() {
 					code,
 					type,
 					border: IComponentBorder.SOLID,
+					fatherClientId: null,
 					isVisible: true,
 					width: size.width,
 					height: size.height
@@ -623,6 +668,7 @@ function VisualControlStructure() {
 					code: draft.code,
 					type: draft.type,
 					border: draft.border,
+					fatherClientId: draft.fatherClientId,
 					isVisible: draft.isVisible,
 					width: draft.width,
 					height: draft.height
@@ -667,7 +713,9 @@ function VisualControlStructure() {
 	};
 
 	const deleteSelected = () => {
-		selectedCellRef.current?.remove();
+		const graph = graphRef.current;
+		const cell = selectedCellRef.current;
+		if (graph && cell) removeDiagramCell(graph, cell);
 		selectedCellRef.current = null;
 		setSelectedId(null);
 		setDraft(null);
@@ -693,6 +741,24 @@ function VisualControlStructure() {
 		updateZoom(1);
 		paperRef.current?.translate(0, 0);
 	};
+
+	const fatherOptions =
+		draft?.kind === "component"
+			? (() => {
+					const graph = graphRef.current;
+					if (!graph) return [];
+					const descendantIds = getComponentDescendantIds(graph, draft.clientId);
+					return graph.getCells().flatMap(cell => {
+						const data = getDiagramData(cell);
+						return data?.kind === "component" &&
+							data.component.clientId !== draft.clientId &&
+							data.component.type !== IComponentType.ENVIRONMENT &&
+							!descendantIds.has(data.component.clientId)
+							? [data.component]
+							: [];
+					});
+				})()
+			: [];
 
 	return (
 		<div className={styles.editor}>
@@ -852,6 +918,26 @@ function VisualControlStructure() {
 								{componentTypes.map(type => (
 									<option key={type.value} value={type.value}>
 										{type.label}
+									</option>
+								))}
+							</select>
+						</label>
+						<label>
+							Father (optional)
+							<select
+								value={draft.fatherClientId ?? ""}
+								onChange={event =>
+									setDraft(current =>
+										current?.kind === "component"
+											? { ...current, fatherClientId: event.target.value || null }
+											: current
+									)
+								}
+							>
+								<option value="">None</option>
+								{fatherOptions.map(component => (
+									<option key={component.clientId} value={component.clientId}>
+										{component.name} ({component.code})
 									</option>
 								))}
 							</select>
