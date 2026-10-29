@@ -1,5 +1,6 @@
 package microstamp.step2.dto.controlstructure;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import microstamp.step2.dto.component.FacadeComponentInsertDto;
@@ -19,6 +20,9 @@ public class ControlStructureInsertDto {
     @NotNull
     private UUID analysisId;
 
+    @Valid
     private List<FacadeComponentInsertDto> components = new ArrayList<>();
+
+    @Valid
     private List<FacadeConnectionInsertDto> connections = new ArrayList<>();
 }

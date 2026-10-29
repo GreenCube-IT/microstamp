@@ -1,5 +1,6 @@
 package microstamp.step2.dto.connection;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,5 +31,6 @@ public class FacadeConnectionInsertDto {
 
     private Style style;
 
+    @Valid
     private List<FacadeInteractionInsertDto> interactions;
 }
