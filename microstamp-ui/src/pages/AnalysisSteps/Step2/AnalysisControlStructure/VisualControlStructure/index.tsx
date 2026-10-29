@@ -178,19 +178,23 @@ function getComponentDescendantIds(graph: joint.dia.Graph, componentClientId: st
 	return descendantIds;
 }
 
-function removeDiagramCell(graph: joint.dia.Graph, cell: joint.dia.Cell) {
+function removeDiagramCell(
+	graph: joint.dia.Graph,
+	cell: joint.dia.Cell,
+	visited = new Set<string>()
+) {
 	const data = getDiagramData(cell);
 	if (data?.kind === "component") {
+		if (visited.has(data.component.clientId)) return;
+		visited.add(data.component.clientId);
+
 		graph.getCells().forEach(candidate => {
 			const candidateData = getDiagramData(candidate);
 			if (
 				candidateData?.kind === "component" &&
 				candidateData.component.fatherClientId === data.component.clientId
 			) {
-				candidate.set("data", {
-					...candidateData,
-					component: { ...candidateData.component, fatherClientId: null }
-				});
+				removeDiagramCell(graph, candidate, visited);
 			}
 		});
 	}
