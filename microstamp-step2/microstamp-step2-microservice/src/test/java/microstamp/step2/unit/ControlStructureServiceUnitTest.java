@@ -149,7 +149,7 @@ public class ControlStructureServiceUnitTest {
                 .code("Cn.01")
                 .sourceCode("C.01")
                 .targetCode("C.02")
-                .style(SOLID)
+                .style(DASHED)
                 .interactions(List.of())
                 .build();
 
@@ -169,7 +169,7 @@ public class ControlStructureServiceUnitTest {
                 .code("Cn.01")
                 .source(sourceDto)
                 .target(targetDto)
-                .style(SOLID)
+                .style(DASHED)
                 .interactions(List.of())
                 .build();
 
@@ -184,6 +184,7 @@ public class ControlStructureServiceUnitTest {
                         && "Cn.01".equals(dto.getCode())
                         && sourceId.equals(dto.getSourceId())
                         && targetId.equals(dto.getTargetId())
+                        && DASHED.equals(dto.getStyle())
         ));
     }
 

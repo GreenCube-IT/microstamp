@@ -43,6 +43,7 @@ public class ControlStructureMapper {
                 .code(facadeConnectionInsertDto.getCode())
                 .sourceId(sourceId)
                 .targetId(targetId)
+                .style(facadeConnectionInsertDto.getStyle())
                 .analysisId(analysisID)
                 .build();
     }
