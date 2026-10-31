@@ -33,7 +33,7 @@ public class ComponentStructureSync {
             ComponentInsertDto insertDto = ControlStructureMapper.toComponentInsertDto(
                     component, context.getAnalysisId());
 
-            if (component.getFatherCode() != null) {
+            if (component.getFatherCode() != null && !component.getFatherCode().isBlank()) {
                 componentsContainingFather.add(component);
             }
 
