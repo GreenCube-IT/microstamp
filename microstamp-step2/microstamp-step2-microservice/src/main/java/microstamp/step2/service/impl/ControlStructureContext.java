@@ -64,19 +64,23 @@ public class ControlStructureContext {
     }
 
     private void getPayloadComponents(ControlStructureInsertDto dto) {
-        if (dto.getComponents() != null) {
-            for (FacadeComponentInsertDto component : dto.getComponents()) {
-                if (component.getId() == null) {
-                    incomingNewComponents.add(component);
-                } else {
-                    incomingExistingComponentIds.add(component.getId());
-                    incomingExistingComponents.add(component);
-                }
+        if (dto.getComponents() == null) {
+            return;
+        }
+        for (FacadeComponentInsertDto component : dto.getComponents()) {
+            if (component.getId() == null) {
+                incomingNewComponents.add(component);
+            } else {
+                incomingExistingComponentIds.add(component.getId());
+                incomingExistingComponents.add(component);
             }
         }
     }
 
     private void getPayloadConnections(ControlStructureInsertDto dto) {
+        if (dto.getConnections() == null) {
+            return;
+        }
         for (FacadeConnectionInsertDto connection : dto.getConnections()) {
             if (connection.getId() == null) {
                 incomingNewConnections.add(connection);
