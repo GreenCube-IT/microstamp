@@ -15,6 +15,7 @@ import microstamp.step2.repository.InteractionRepository;
 import microstamp.step2.service.InteractionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
@@ -43,6 +44,13 @@ public class InteractionServiceImpl implements InteractionService {
 
     public List<InteractionReadDto> findByConnectionId(UUID id) {
         return interactionRepository.findByConnectionId(id).stream()
+                .map(InteractionMapper::toDto)
+                .sorted(Comparator.comparing(InteractionReadDto::getCode))
+                .toList();
+    }
+
+    public List<InteractionReadDto> findByAnalysisId(UUID id) {
+        return interactionRepository.findByConnection_AnalysisId(id).stream()
                 .map(InteractionMapper::toDto)
                 .sorted(Comparator.comparing(InteractionReadDto::getCode))
                 .toList();
@@ -77,6 +85,16 @@ public class InteractionServiceImpl implements InteractionService {
         Interaction interaction = interactionRepository.findById(id)
                 .orElseThrow(() -> new Step2NotFoundException("Interaction", id.toString()));
         interactionRepository.deleteById(interaction.getId());
+    }
+
+    @Override
+    @Transactional
+    public void deleteDirectlyById(UUID id) throws Step2NotFoundException {
+        if (!interactionRepository.existsById(id)) {
+            throw new Step2NotFoundException("Interaction", id.toString());
+        }
+
+        interactionRepository.deleteDirectlyById(id);
     }
 
     public void validate(Connection connection, InteractionType interactionType) {
