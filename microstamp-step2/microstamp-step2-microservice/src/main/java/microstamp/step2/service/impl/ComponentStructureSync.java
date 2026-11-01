@@ -4,6 +4,7 @@ import microstamp.step2.dto.component.ComponentInsertDto;
 import microstamp.step2.dto.component.ComponentReadDto;
 import microstamp.step2.dto.component.ComponentUpdateDto;
 import microstamp.step2.dto.component.FacadeComponentInsertDto;
+import microstamp.step2.exception.Step2NotFoundException;
 import microstamp.step2.mapper.ControlStructureMapper;
 import microstamp.step2.service.ComponentService;
 
@@ -41,14 +42,23 @@ public class ComponentStructureSync {
             context.getComponentCodeToId().put(savedComponent.getCode(), savedComponent.getId());
         }
 
+        relateFathersAfterBatchSave(context, componentsContainingFather);
+    }
+
+    private void relateFathersAfterBatchSave(ControlStructureContext context, List<FacadeComponentInsertDto> componentsContainingFather) {
         for (FacadeComponentInsertDto component : componentsContainingFather) {
             UUID childId = context.getComponentCodeToId().get(component.getCode());
             UUID fatherId = context.getComponentCodeToId().get(component.getFatherCode());
 
-            if (childId != null && fatherId != null) {
-                ComponentUpdateDto updateDto = ControlStructureMapper.toComponentUpdateDto(component, fatherId);
-                componentService.update(childId, updateDto);
+            if (childId == null) {
+                throw new Step2NotFoundException("Child component", component.getCode());
             }
+            if (fatherId == null) {
+                throw new Step2NotFoundException("Father component", component.getFatherCode());
+            }
+
+            ComponentUpdateDto updateDto = ControlStructureMapper.toComponentUpdateDto(component, fatherId);
+            componentService.update(childId, updateDto);
         }
     }
 
