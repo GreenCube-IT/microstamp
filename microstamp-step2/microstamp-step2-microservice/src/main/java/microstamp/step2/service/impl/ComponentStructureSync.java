@@ -86,6 +86,9 @@ public class ComponentStructureSync {
     }
 
     private boolean hasComponentChanged(FacadeComponentInsertDto incomingDto, ComponentReadDto dbDto) {
+        if (dbDto == null)
+            throw new Step2NotFoundException("Component", incomingDto.getCode());
+
         String fatherCode = null;
         if (dbDto.getFather() != null) {
             fatherCode = dbDto.getFather().getCode();

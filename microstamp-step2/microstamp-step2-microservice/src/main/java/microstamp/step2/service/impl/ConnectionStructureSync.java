@@ -78,6 +78,9 @@ public class ConnectionStructureSync {
     }
 
     private boolean hasConnectionChanged(FacadeConnectionInsertDto incomingDto, ConnectionReadDto dbDto) {
+        if (dbDto == null)
+            throw new Step2NotFoundException("Connection", incomingDto.getCode());
+
         return !Objects.equals(incomingDto.getCode(), dbDto.getCode())
                 || !Objects.equals(incomingDto.getSourceCode(), dbDto.getSource().getCode())
                 || !Objects.equals(incomingDto.getTargetCode(), dbDto.getTarget().getCode())
