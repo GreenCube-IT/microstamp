@@ -34,14 +34,14 @@ public class ControlStructureContext {
 
     public ControlStructureContext(
             ControlStructureInsertDto dto,
-            ComponentService componentService,
-            ConnectionService connectionService,
-            InteractionService interactionService) {
+            List<ComponentReadDto> dbComponents,
+            List<ConnectionReadDto> dbConnections,
+            List<InteractionReadDto> dbInteractions) {
         this.analysisId = dto.getAnalysisId();
 
-        this.dbInteractions = interactionService.findByAnalysisId(analysisId);
-        this.dbConnections = connectionService.findByAnalysisId(analysisId);
-        this.dbComponents = componentService.findByAnalysisId(analysisId);
+        this.dbInteractions = dbInteractions;
+        this.dbConnections = dbConnections;
+        this.dbComponents = dbComponents;
 
         fillConnectionByIdMap();
         fillComponentByIdMap();
