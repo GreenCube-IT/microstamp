@@ -23,7 +23,7 @@ public class ComponentStructureSync {
 
     public void createComponentCodeToIdMap(ControlStructureContext context) {
         for (FacadeComponentInsertDto component : context.getIncomingExistingComponents()) {
-            context.getComponentCodeToId().put(component.getCode(), component.getId());
+            context.getComponentCodeToIdMap().put(component.getCode(), component.getId());
         }
     }
 
@@ -39,7 +39,7 @@ public class ComponentStructureSync {
             }
 
             ComponentReadDto savedComponent = componentService.insert(insertDto);
-            context.getComponentCodeToId().put(savedComponent.getCode(), savedComponent.getId());
+            context.getComponentCodeToIdMap().put(savedComponent.getCode(), savedComponent.getId());
         }
 
         relateFathersAfterBatchSave(context, componentsContainingFather);
@@ -47,8 +47,8 @@ public class ComponentStructureSync {
 
     private void relateFathersAfterBatchSave(ControlStructureContext context, List<FacadeComponentInsertDto> componentsContainingFather) {
         for (FacadeComponentInsertDto component : componentsContainingFather) {
-            UUID childId = context.getComponentCodeToId().get(component.getCode());
-            UUID fatherId = context.getComponentCodeToId().get(component.getFatherCode());
+            UUID childId = context.getComponentCodeToIdMap().get(component.getCode());
+            UUID fatherId = context.getComponentCodeToIdMap().get(component.getFatherCode());
 
             if (childId == null) {
                 throw new Step2NotFoundException("Child component", component.getCode());
@@ -68,7 +68,7 @@ public class ComponentStructureSync {
             if (hasComponentChanged(component, dbComponent)) {
                 UUID fatherId = null;
                 if (component.getFatherCode() != null && !component.getFatherCode().isBlank()) {
-                    fatherId = context.getComponentCodeToId().get(component.getFatherCode());
+                    fatherId = context.getComponentCodeToIdMap().get(component.getFatherCode());
                 }
 
                 ComponentUpdateDto updateDto = ControlStructureMapper.toComponentUpdateDto(component, fatherId);

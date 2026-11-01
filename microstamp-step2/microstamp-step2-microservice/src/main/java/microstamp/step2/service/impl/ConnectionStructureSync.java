@@ -39,8 +39,8 @@ public class ConnectionStructureSync {
     }
 
     private UUID saveNewConnection(ControlStructureContext context, FacadeConnectionInsertDto connection) {
-        UUID sourceId = context.getComponentCodeToId().get(connection.getSourceCode());
-        UUID targetId = context.getComponentCodeToId().get(connection.getTargetCode());
+        UUID sourceId = context.getComponentCodeToIdMap().get(connection.getSourceCode());
+        UUID targetId = context.getComponentCodeToIdMap().get(connection.getTargetCode());
 
         if (sourceId == null || targetId == null) {
             throw new Step2NotFoundException(
@@ -53,8 +53,8 @@ public class ConnectionStructureSync {
     }
 
     private void updateExistingConnection(ControlStructureContext context, FacadeConnectionInsertDto connection) {
-        UUID sourceId = context.getComponentCodeToId().get(connection.getSourceCode());
-        UUID targetId = context.getComponentCodeToId().get(connection.getTargetCode());
+        UUID sourceId = context.getComponentCodeToIdMap().get(connection.getSourceCode());
+        UUID targetId = context.getComponentCodeToIdMap().get(connection.getTargetCode());
 
         if (sourceId == null || targetId == null) {
             throw new Step2NotFoundException(
