@@ -904,6 +904,67 @@ public class ControlStructureServiceUnitTest {
     }
 
     @Test
+    @DisplayName("When a removed parent and child are ordered parent-first > request deletion only for the parent")
+    void whenRemovedParentComesBeforeChildShouldOnlyRequestParentDeletion() {
+        UUID analysisId = UUID.randomUUID();
+        UUID parentId = UUID.randomUUID();
+        UUID childId = UUID.randomUUID();
+
+        ComponentReadDto parent = ComponentReadDto.builder()
+                .id(parentId).code("C.01").border(SOLID).isVisible(true).type("Controller").build();
+        ComponentReadDto child = ComponentReadDto.builder()
+                .id(childId).code("C.02").father(parent).border(SOLID).isVisible(true)
+                .type("Controlled_Process").build();
+
+        when(interactionService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(connectionService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(componentService.findByAnalysisId(analysisId)).thenReturn(List.of(parent, child));
+        when(componentService.getComponentChildren(parentId)).thenReturn(List.of(child));
+
+        ControlStructureInsertDto payload = ControlStructureInsertDto.builder()
+                .analysisId(analysisId)
+                .components(List.of())
+                .connections(List.of())
+                .build();
+
+        service.saveControlStructure(payload);
+
+        verify(componentService, times(1)).delete(parentId);
+        verify(componentService, never()).delete(childId);
+    }
+
+    @Test
+    @DisplayName("When a removed parent and child are ordered child-first > request deletion once for each")
+    void whenRemovedChildComesBeforeParentShouldRequestEachDeletionOnce() {
+        UUID analysisId = UUID.randomUUID();
+        UUID parentId = UUID.randomUUID();
+        UUID childId = UUID.randomUUID();
+
+        ComponentReadDto parent = ComponentReadDto.builder()
+                .id(parentId).code("C.02").border(SOLID).isVisible(true).type("Controller").build();
+        ComponentReadDto child = ComponentReadDto.builder()
+                .id(childId).code("C.01").father(parent).border(SOLID).isVisible(true)
+                .type("Controlled_Process").build();
+
+        when(interactionService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(connectionService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(componentService.findByAnalysisId(analysisId)).thenReturn(List.of(child, parent));
+        when(componentService.getComponentChildren(childId)).thenReturn(List.of());
+        when(componentService.getComponentChildren(parentId)).thenReturn(List.of(child));
+
+        ControlStructureInsertDto payload = ControlStructureInsertDto.builder()
+                .analysisId(analysisId)
+                .components(List.of())
+                .connections(List.of())
+                .build();
+
+        service.saveControlStructure(payload);
+
+        verify(componentService, times(1)).delete(childId);
+        verify(componentService, times(1)).delete(parentId);
+    }
+
+    @Test
     @DisplayName("When a connection is removed from payload > delete connection from database successfully")
     void whenConnectionIsRemovedFromPayloadShouldDeleteConnectionSuccessfully() {
         // ARRANGE

@@ -8,10 +8,7 @@ import microstamp.step2.exception.Step2NotFoundException;
 import microstamp.step2.mapper.ControlStructureMapper;
 import microstamp.step2.service.ComponentService;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 public class ComponentStructureSync {
 
@@ -78,10 +75,21 @@ public class ComponentStructureSync {
     }
 
     public void cleanUpRemoved(ControlStructureContext context) {
+        Set<UUID> deletedDescendants = new HashSet<>();
+
         for (ComponentReadDto component : context.getDbComponents()) {
-            if (!context.getIncomingExistingComponentIds().contains(component.getId())) {
+            if (!context.getIncomingExistingComponentIds().contains(component.getId()) && !deletedDescendants.contains(component.getId())) {
+                recordDescendantIdsToSkip(deletedDescendants, component);
                 componentService.delete(component.getId());
             }
+        }
+    }
+
+    private void recordDescendantIdsToSkip(Set<UUID> deletedDescendants, ComponentReadDto component) {
+        List<ComponentReadDto> children = componentService.getComponentChildren(component.getId());
+
+        for (ComponentReadDto child : children) {
+            deletedDescendants.add(child.getId());
         }
     }
 
