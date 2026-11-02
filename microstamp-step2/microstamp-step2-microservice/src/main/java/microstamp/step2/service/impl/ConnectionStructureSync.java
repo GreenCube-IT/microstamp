@@ -24,7 +24,7 @@ public class ConnectionStructureSync {
             UUID connectionId = saveNewConnection(context, connection);
             if (connectionId != null && connection.getInteractions() != null
                     && !connection.getInteractions().isEmpty()) {
-                interactionSync.syncForConnection(connection, connectionId);
+                interactionSync.syncForConnection(context, connection, connectionId);
             }
         }
     }
@@ -33,7 +33,7 @@ public class ConnectionStructureSync {
         for (FacadeConnectionInsertDto connection : context.getIncomingExistingConnections()) {
             updateExistingConnection(context, connection);
             if (connection.getInteractions() != null && !connection.getInteractions().isEmpty()) {
-                interactionSync.syncForConnection(connection, connection.getId());
+                interactionSync.syncForConnection(context, connection, connection.getId());
             }
         }
     }

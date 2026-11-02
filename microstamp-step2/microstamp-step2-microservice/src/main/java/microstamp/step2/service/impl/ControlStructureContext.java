@@ -30,6 +30,7 @@ public class ControlStructureContext {
     private final Set<UUID> incomingExistingComponentIds = new HashSet<>();
     private final Set<UUID> incomingExistingConnectionIds = new HashSet<>();
     private final Set<UUID> incomingExistingInteractionIds = new HashSet<>();
+    private final Map<UUID,InteractionReadDto> idToDbInteractionsMap = new HashMap<>();
     private final Map<String, UUID> componentCodeToIdMap = new HashMap<>();
 
     public ControlStructureContext(
@@ -46,6 +47,8 @@ public class ControlStructureContext {
         fillConnectionByIdMap();
         fillComponentByIdMap();
 
+        fillDbInteractionsMap();
+
         getPayloadComponents(dto);
         getPayloadConnections(dto);
 
@@ -60,6 +63,12 @@ public class ControlStructureContext {
     private void fillComponentByIdMap() {
         for (ComponentReadDto component : dbComponents) {
             dbComponentsByIdMap.put(component.getId(), component);
+        }
+    }
+
+    private void fillDbInteractionsMap() {
+        for (InteractionReadDto interaction : dbInteractions) {
+            idToDbInteractionsMap.put(interaction.getId(), interaction);
         }
     }
 
