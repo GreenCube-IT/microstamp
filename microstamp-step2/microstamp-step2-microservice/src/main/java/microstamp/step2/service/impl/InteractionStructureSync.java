@@ -21,20 +21,39 @@ public class InteractionStructureSync {
         this.interactionService = interactionService;
     }
 
-    public void syncForConnection(ControlStructureContext context, FacadeConnectionInsertDto connection) {
+    public void saveInteractions (ControlStructureContext context) {
         Map<UUID, InteractionReadDto> dbInteractionsMap = context.getDbInteractionsByIdMap();
-        for (FacadeInteractionInsertDto interactionDto : connection.getInteractions()) {
+
+        for (FacadeConnectionInsertDto facadeConnectionInsertDto : context.getIncomingNewConnections()) {
+            UUID connectionId = context.getConnectionCodeToIdMap().get(facadeConnectionInsertDto.getCode());
+            if (connectionId == null)
+                throw new Step2NotFoundException("Connection", facadeConnectionInsertDto.getCode());
+
+            if (facadeConnectionInsertDto.getInteractions() != null && !facadeConnectionInsertDto.getInteractions().isEmpty()) {
+                syncForConnection(dbInteractionsMap, facadeConnectionInsertDto, connectionId);
+            }
+        }
+
+        for (FacadeConnectionInsertDto facadeConnectionInsertDto : context.getIncomingExistingConnections()) {
+            if (facadeConnectionInsertDto.getInteractions() != null && !facadeConnectionInsertDto.getInteractions().isEmpty()) {
+                syncForConnection(dbInteractionsMap, facadeConnectionInsertDto, facadeConnectionInsertDto.getId());
+            }
+        }
+    }
+
+    private void syncForConnection(Map<UUID, InteractionReadDto> dbInteractionsMap, FacadeConnectionInsertDto facadeConnDto, UUID connectionId) {
+        for (FacadeInteractionInsertDto interactionDto : facadeConnDto.getInteractions()) {
             if (interactionDto.getId() == null) {
-                saveInteraction(connection, interactionDto);
+                saveInteraction(facadeConnDto, interactionDto, connectionId);
             } else {
                 updateInteraction(interactionDto, dbInteractionsMap);
             }
         }
     }
 
-    private void saveInteraction(FacadeConnectionInsertDto connection, FacadeInteractionInsertDto interaction) {
+    private void saveInteraction(FacadeConnectionInsertDto connection, FacadeInteractionInsertDto interaction, UUID connectionId) {
         InteractionInsertDto insertDto = ControlStructureMapper.toInteractionInsertDto(
-                interaction, connection.getId());
+                interaction, connectionId);
         interactionService.insert(insertDto);
     }
 

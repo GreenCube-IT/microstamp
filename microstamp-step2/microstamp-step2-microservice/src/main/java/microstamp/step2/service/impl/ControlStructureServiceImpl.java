@@ -52,8 +52,11 @@ public class ControlStructureServiceImpl implements ControlStructureService {
         componentSync.saveNewComponents(context);
         componentSync.updateExistingComponents(context);
 
-        connectionSync.saveConnections(context, interactionSync);
-        connectionSync.updateExistingConnections(context, interactionSync);
+        connectionSync.createConnectionCodeToIdMap(context);
+        connectionSync.saveConnections(context);
+        connectionSync.updateExistingConnections(context);
+
+        interactionSync.saveInteractions(context);
 
         interactionSync.cleanUpRemoved(context);
         connectionSync.cleanUpRemoved(context);

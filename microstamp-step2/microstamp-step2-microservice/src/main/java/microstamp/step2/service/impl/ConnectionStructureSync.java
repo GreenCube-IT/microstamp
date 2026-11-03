@@ -19,22 +19,22 @@ public class ConnectionStructureSync {
         this.connectionService = connectionService;
     }
 
-    public void saveConnections(ControlStructureContext context, InteractionStructureSync interactionSync) {
-        for (FacadeConnectionInsertDto connection : context.getIncomingNewConnections()) {
-            UUID connectionId = saveNewConnection(context, connection);
-            if (connectionId != null && connection.getInteractions() != null
-                    && !connection.getInteractions().isEmpty()) {
-                interactionSync.syncForConnection(context, connection);
-            }
+    public void createConnectionCodeToIdMap(ControlStructureContext context) {
+        for (FacadeConnectionInsertDto connection : context.getIncomingExistingConnections()) {
+            context.getConnectionCodeToIdMap().put(connection.getCode(), connection.getId());
         }
     }
 
-    public void updateExistingConnections(ControlStructureContext context, InteractionStructureSync interactionSync) {
+    public void saveConnections(ControlStructureContext context) {
+        for (FacadeConnectionInsertDto connection : context.getIncomingNewConnections()) {
+            UUID connectionId = saveNewConnection(context, connection);
+            context.getConnectionCodeToIdMap().put(connection.getCode(), connectionId);
+        }
+    }
+
+    public void updateExistingConnections(ControlStructureContext context) {
         for (FacadeConnectionInsertDto connection : context.getIncomingExistingConnections()) {
             updateExistingConnection(context, connection);
-            if (connection.getInteractions() != null && !connection.getInteractions().isEmpty()) {
-                interactionSync.syncForConnection(context, connection);
-            }
         }
     }
 

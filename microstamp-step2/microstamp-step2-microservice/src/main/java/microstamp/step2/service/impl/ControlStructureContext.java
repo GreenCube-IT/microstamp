@@ -32,6 +32,7 @@ public class ControlStructureContext {
     private final Set<UUID> incomingExistingConnectionIds = new HashSet<>();
     private final Set<UUID> incomingExistingInteractionIds = new HashSet<>();
     private final Map<String, UUID> componentCodeToIdMap = new HashMap<>();
+    private final Map<String, UUID> connectionCodeToIdMap = new HashMap<>();
 
     public ControlStructureContext(
             ControlStructureInsertDto dto,
