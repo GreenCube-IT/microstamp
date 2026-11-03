@@ -9,9 +9,7 @@ import microstamp.step2.exception.Step2NotFoundException;
 import microstamp.step2.mapper.ControlStructureMapper;
 import microstamp.step2.service.InteractionService;
 
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 public class InteractionStructureSync {
 
@@ -21,7 +19,7 @@ public class InteractionStructureSync {
         this.interactionService = interactionService;
     }
 
-    public void saveInteractions (ControlStructureContext context) {
+    public void saveInteractions(ControlStructureContext context) {
         Map<UUID, InteractionReadDto> dbInteractionsMap = context.getDbInteractionsByIdMap();
 
         for (FacadeConnectionInsertDto facadeConnectionInsertDto : context.getIncomingNewConnections()) {
@@ -60,7 +58,7 @@ public class InteractionStructureSync {
     private void updateInteraction(FacadeInteractionInsertDto interaction, Map<UUID, InteractionReadDto> dbInteractionsMap) {
         InteractionReadDto dbInteraction = dbInteractionsMap.get(interaction.getId());
 
-        if(dbInteraction == null)
+        if (dbInteraction == null)
             throw new Step2NotFoundException("Interaction", interaction.getCode());
 
         if (hasInteractionChanged(interaction, dbInteraction)) {
@@ -76,10 +74,15 @@ public class InteractionStructureSync {
     }
 
     public void cleanUpRemoved(ControlStructureContext context) {
+        List<UUID> interactionsIdsToRemove = new ArrayList<>();
+
         for (InteractionReadDto interaction : context.getDbInteractions()) {
             if (!context.getIncomingExistingInteractionIds().contains(interaction.getId())) {
-                interactionService.deleteDirectlyById(interaction.getId());
+                interactionsIdsToRemove.add(interaction.getId());
             }
         }
+
+        if (!interactionsIdsToRemove.isEmpty())
+            interactionService.deleteDirectlyByIds(interactionsIdsToRemove);
     }
 }

@@ -27,6 +27,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -403,7 +404,7 @@ public class ControlStructureServiceUnitTest {
         service.saveControlStructure(emptyPayload);
 
         // Assert
-        verify(interactionService, times(1)).deleteDirectlyById(oldInteractionId);
+        verify(interactionService, times(1)).deleteDirectlyByIds(List.of(oldInteractionId));
         verify(connectionService, times(1)).delete(oldConnId);
         verify(componentService, times(1)).delete(oldCompId);
     }
@@ -1081,7 +1082,7 @@ public class ControlStructureServiceUnitTest {
         service.saveControlStructure(payload);
 
         // ASSERT
-        verify(interactionService, times(1)).deleteDirectlyById(interactionId);
+        verify(interactionService, times(1)).deleteDirectlyByIds(List.of(interactionId));
     }
 
     @Test

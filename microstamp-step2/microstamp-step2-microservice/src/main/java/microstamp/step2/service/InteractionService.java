@@ -25,7 +25,7 @@ public interface InteractionService {
 
     void delete(UUID id);
 
-    void deleteDirectlyById(UUID id);
+    void deleteDirectlyByIds(List<UUID> ids);
 
     void validate(Connection connection, InteractionType interactionType);
 

@@ -89,12 +89,11 @@ public class InteractionServiceImpl implements InteractionService {
 
     @Override
     @Transactional
-    public void deleteDirectlyById(UUID id) throws Step2NotFoundException {
-        if (!interactionRepository.existsById(id)) {
-            throw new Step2NotFoundException("Interaction", id.toString());
-        }
+    public void deleteDirectlyByIds(List<UUID> ids) {
+        if (ids.isEmpty())
+            return;
 
-        interactionRepository.deleteDirectlyById(id);
+        interactionRepository.deleteDirectlyByIds(ids);
     }
 
     public void validate(Connection connection, InteractionType interactionType) {

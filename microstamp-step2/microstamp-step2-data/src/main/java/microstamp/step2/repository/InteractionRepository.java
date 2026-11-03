@@ -21,6 +21,6 @@ public interface InteractionRepository extends JpaRepository<Interaction, UUID> 
     List<Interaction> findByConnection_AnalysisId(UUID connectionAnalysisId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("DELETE FROM Interaction i WHERE i.id = :id")
-    void deleteDirectlyById(@Param("id") UUID id);
+    @Query("DELETE FROM Interaction i WHERE i.id IN :ids")
+    void deleteDirectlyByIds(@Param("ids") List<UUID> ids);
 }
