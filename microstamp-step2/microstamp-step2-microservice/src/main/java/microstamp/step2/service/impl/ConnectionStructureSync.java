@@ -24,7 +24,7 @@ public class ConnectionStructureSync {
             UUID connectionId = saveNewConnection(context, connection);
             if (connectionId != null && connection.getInteractions() != null
                     && !connection.getInteractions().isEmpty()) {
-                interactionSync.syncForConnection(context, connection, connectionId);
+                interactionSync.syncForConnection(context, connection);
             }
         }
     }
@@ -33,7 +33,7 @@ public class ConnectionStructureSync {
         for (FacadeConnectionInsertDto connection : context.getIncomingExistingConnections()) {
             updateExistingConnection(context, connection);
             if (connection.getInteractions() != null && !connection.getInteractions().isEmpty()) {
-                interactionSync.syncForConnection(context, connection, connection.getId());
+                interactionSync.syncForConnection(context, connection);
             }
         }
     }
@@ -62,6 +62,10 @@ public class ConnectionStructureSync {
         }
 
         ConnectionReadDto dbConnection = context.getDbConnectionsByIdMap().get(connection.getId());
+
+        if (dbConnection == null)
+            throw new Step2NotFoundException("Connection", connection.getCode());
+
         if (hasConnectionChanged(connection, dbConnection)) {
             ConnectionUpdateDto updateDto = ControlStructureMapper.toConnectionUpdateDto(
                     connection, sourceId, targetId);
@@ -78,9 +82,6 @@ public class ConnectionStructureSync {
     }
 
     private boolean hasConnectionChanged(FacadeConnectionInsertDto incomingDto, ConnectionReadDto dbDto) {
-        if (dbDto == null)
-            throw new Step2NotFoundException("Connection", incomingDto.getCode());
-
         return !Objects.equals(incomingDto.getCode(), dbDto.getCode())
                 || !Objects.equals(incomingDto.getSourceCode(), dbDto.getSource().getCode())
                 || !Objects.equals(incomingDto.getTargetCode(), dbDto.getTarget().getCode())

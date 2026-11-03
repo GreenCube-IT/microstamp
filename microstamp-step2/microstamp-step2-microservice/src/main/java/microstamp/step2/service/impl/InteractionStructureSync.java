@@ -21,18 +21,18 @@ public class InteractionStructureSync {
         this.interactionService = interactionService;
     }
 
-    public void syncForConnection(ControlStructureContext context, FacadeConnectionInsertDto connection, UUID connectionId) {
-        Map<UUID, InteractionReadDto> dbInteractionsMap = context.getIdToDbInteractionsMap();
+    public void syncForConnection(ControlStructureContext context, FacadeConnectionInsertDto connection) {
+        Map<UUID, InteractionReadDto> dbInteractionsMap = context.getDbInteractionsByIdMap();
         for (FacadeInteractionInsertDto interactionDto : connection.getInteractions()) {
             if (interactionDto.getId() == null) {
-                saveInteraction(connection, connectionId, interactionDto);
+                saveInteraction(connection, interactionDto);
             } else {
                 updateInteraction(interactionDto, dbInteractionsMap);
             }
         }
     }
 
-    private void saveInteraction(FacadeConnectionInsertDto connection, UUID connectionId, FacadeInteractionInsertDto interaction) {
+    private void saveInteraction(FacadeConnectionInsertDto connection, FacadeInteractionInsertDto interaction) {
         InteractionInsertDto insertDto = ControlStructureMapper.toInteractionInsertDto(
                 interaction, connection.getId());
         interactionService.insert(insertDto);

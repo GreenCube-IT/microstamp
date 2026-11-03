@@ -62,6 +62,10 @@ public class ComponentStructureSync {
     public void updateExistingComponents(ControlStructureContext context) {
         for (FacadeComponentInsertDto component : context.getIncomingExistingComponents()) {
             ComponentReadDto dbComponent = context.getDbComponentsByIdMap().get(component.getId());
+
+            if (dbComponent == null)
+                throw new Step2NotFoundException("Component", component.getCode());
+
             if (hasComponentChanged(component, dbComponent)) {
                 UUID fatherId = null;
                 if (component.getFatherCode() != null && !component.getFatherCode().isBlank()) {
@@ -94,9 +98,6 @@ public class ComponentStructureSync {
     }
 
     private boolean hasComponentChanged(FacadeComponentInsertDto incomingDto, ComponentReadDto dbDto) {
-        if (dbDto == null)
-            throw new Step2NotFoundException("Component", incomingDto.getCode());
-
         String fatherCode = null;
         if (dbDto.getFather() != null) {
             fatherCode = dbDto.getFather().getCode();

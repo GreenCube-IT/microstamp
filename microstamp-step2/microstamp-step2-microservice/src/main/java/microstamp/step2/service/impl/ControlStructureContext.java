@@ -23,6 +23,7 @@ public class ControlStructureContext {
     private final List<ComponentReadDto> dbComponents;
     private final Map<UUID, ConnectionReadDto> dbConnectionsByIdMap = new HashMap<>();
     private final Map<UUID, ComponentReadDto> dbComponentsByIdMap = new HashMap<>();
+    private final Map<UUID, InteractionReadDto> dbInteractionsByIdMap = new HashMap<>();
     private final List<FacadeComponentInsertDto> incomingNewComponents = new LinkedList<>();
     private final List<FacadeComponentInsertDto> incomingExistingComponents = new LinkedList<>();
     private final List<FacadeConnectionInsertDto> incomingNewConnections = new LinkedList<>();
@@ -30,7 +31,6 @@ public class ControlStructureContext {
     private final Set<UUID> incomingExistingComponentIds = new HashSet<>();
     private final Set<UUID> incomingExistingConnectionIds = new HashSet<>();
     private final Set<UUID> incomingExistingInteractionIds = new HashSet<>();
-    private final Map<UUID,InteractionReadDto> idToDbInteractionsMap = new HashMap<>();
     private final Map<String, UUID> componentCodeToIdMap = new HashMap<>();
 
     public ControlStructureContext(
@@ -68,7 +68,7 @@ public class ControlStructureContext {
 
     private void fillDbInteractionsMap() {
         for (InteractionReadDto interaction : dbInteractions) {
-            idToDbInteractionsMap.put(interaction.getId(), interaction);
+            dbInteractionsByIdMap.put(interaction.getId(), interaction);
         }
     }
 
@@ -99,11 +99,15 @@ public class ControlStructureContext {
             }
 
             if (connection.getInteractions() != null) {
-                for (FacadeInteractionInsertDto interaction : connection.getInteractions()) {
-                    if (interaction.getId() != null) {
-                        incomingExistingInteractionIds.add(interaction.getId());
-                    }
-                }
+                getPayloadInteractionsForConnection(connection);
+            }
+        }
+    }
+
+    private void getPayloadInteractionsForConnection(FacadeConnectionInsertDto connectionDto) {
+        for (FacadeInteractionInsertDto interaction : connectionDto.getInteractions()) {
+            if (interaction.getId() != null) {
+                incomingExistingInteractionIds.add(interaction.getId());
             }
         }
     }
