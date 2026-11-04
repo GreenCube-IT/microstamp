@@ -35,7 +35,7 @@ public class ComponentStructureSync {
                 componentsContainingFather.add(component);
             }
 
-            ComponentReadDto savedComponent = componentService.insert(insertDto);
+            ComponentReadDto savedComponent = componentService.insertAfterAnalysisValidation(insertDto);
             context.getComponentCodeToIdMap().put(savedComponent.getCode(), savedComponent.getId());
         }
 

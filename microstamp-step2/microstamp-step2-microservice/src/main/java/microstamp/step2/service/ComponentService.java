@@ -22,6 +22,8 @@ public interface ComponentService {
 
     ComponentReadDto insert(ComponentInsertDto componentInsertDto);
 
+    ComponentReadDto insertAfterAnalysisValidation(ComponentInsertDto componentInsertDto);
+
     ComponentReadDto insert(ComponentBaseInsertDto componentBaseInsertDto, ComponentType componentType);
 
     void update(UUID id, ComponentUpdateDto componentUpdateDto);

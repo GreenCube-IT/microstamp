@@ -109,13 +109,13 @@ public class ControlStructureServiceUnitTest {
                 .type("Controller")
                 .build();
 
-        when(componentService.insert(any())).thenReturn(createdComponentDto);
+        when(componentService.insertAfterAnalysisValidation(any())).thenReturn(createdComponentDto);
 
         // ACT
         service.saveControlStructure(payload);
 
         // ASSERT
-        verify(componentService, times(1)).insert(argThat(dto ->
+        verify(componentService, times(1)).insertAfterAnalysisValidation(argThat(dto ->
                 dto != null
                         && "C.01".equals(dto.getCode())
                         && "New Controller".equals(dto.getName())
@@ -174,13 +174,13 @@ public class ControlStructureServiceUnitTest {
                 .interactions(List.of())
                 .build();
 
-        when(connectionService.insert(any())).thenReturn(createdConnectionDto);
+        when(connectionService.insertAfterAnalysisValidation(any())).thenReturn(createdConnectionDto);
 
         // ACT
         service.saveControlStructure(payload);
 
         // ASSERT
-        verify(connectionService, times(1)).insert(argThat(dto ->
+        verify(connectionService, times(1)).insertAfterAnalysisValidation(argThat(dto ->
                 dto != null
                         && "Cn.01".equals(dto.getCode())
                         && sourceId.equals(dto.getSourceId())
@@ -302,20 +302,20 @@ public class ControlStructureServiceUnitTest {
         ComponentReadDto compRead1 = ComponentReadDto.builder().id(generatedCompId1).code("C.01").build();
         ComponentReadDto compRead2 = ComponentReadDto.builder().id(generatedCompId2).code("C.02").build();
 
-        when(componentService.insert(argThat(dto -> dto != null && "C.01".equals(dto.getCode())))).thenReturn(compRead1);
-        when(componentService.insert(argThat(dto -> dto != null && "C.02".equals(dto.getCode())))).thenReturn(compRead2);
+        when(componentService.insertAfterAnalysisValidation(argThat(dto -> dto != null && "C.01".equals(dto.getCode())))).thenReturn(compRead1);
+        when(componentService.insertAfterAnalysisValidation(argThat(dto -> dto != null && "C.02".equals(dto.getCode())))).thenReturn(compRead2);
 
         // 4. Connection Insertion Mock
         ConnectionReadDto connRead = ConnectionReadDto.builder().id(generatedConnId).code("Cn.01").build();
-        when(connectionService.insert(any(ConnectionInsertDto.class))).thenReturn(connRead);
+        when(connectionService.insertAfterAnalysisValidation(any(ConnectionInsertDto.class))).thenReturn(connRead);
 
         // Act
         service.saveControlStructure(payload);
 
         // Assert
         verify(microStampAuthClient, times(1)).getAnalysisById(analysisId);
-        verify(componentService, times(2)).insert(any(ComponentInsertDto.class));
-        verify(connectionService, times(1)).insert(any(ConnectionInsertDto.class));
+        verify(componentService, times(2)).insertAfterAnalysisValidation(any(ComponentInsertDto.class));
+        verify(connectionService, times(1)).insertAfterAnalysisValidation(any(ConnectionInsertDto.class));
         verify(interactionService, times(1)).insert(any(InteractionInsertDto.class));
     }
 
@@ -472,14 +472,14 @@ public class ControlStructureServiceUnitTest {
 
         // child insert mock return
         ComponentReadDto childRead = ComponentReadDto.builder().id(childCompId).code("C.02").build();
-        when(componentService.insert(argThat(dto -> dto != null && "C.02".equals(dto.getCode())))).thenReturn(childRead);
+        when(componentService.insertAfterAnalysisValidation(argThat(dto -> dto != null && "C.02".equals(dto.getCode())))).thenReturn(childRead);
 
         // Act
         service.saveControlStructure(payload);
 
         // Assert
         verify(componentService, times(1)).update(eq(fatherCompId), any(ComponentUpdateDto.class));
-        verify(componentService, times(1)).insert(argThat(dto -> dto != null && "C.02".equals(dto.getCode())));
+        verify(componentService, times(1)).insertAfterAnalysisValidation(argThat(dto -> dto != null && "C.02".equals(dto.getCode())));
         verify(componentService, never()).delete(any());
     }
 
@@ -563,14 +563,14 @@ public class ControlStructureServiceUnitTest {
         ComponentReadDto fatherRead = ComponentReadDto.builder().id(generatedFatherId).code("C.01").build();
         ComponentReadDto childRead = ComponentReadDto.builder().id(generatedChildId).code("C.02").build();
 
-        when(componentService.insert(argThat(dto -> dto != null && "C.01".equals(dto.getCode())))).thenReturn(fatherRead);
-        when(componentService.insert(argThat(dto -> dto != null && "C.02".equals(dto.getCode())))).thenReturn(childRead);
+        when(componentService.insertAfterAnalysisValidation(argThat(dto -> dto != null && "C.01".equals(dto.getCode())))).thenReturn(fatherRead);
+        when(componentService.insertAfterAnalysisValidation(argThat(dto -> dto != null && "C.02".equals(dto.getCode())))).thenReturn(childRead);
 
         // Act
         service.saveControlStructure(payload);
 
         // Assert
-        verify(componentService, times(2)).insert(any(ComponentInsertDto.class));
+        verify(componentService, times(2)).insertAfterAnalysisValidation(any(ComponentInsertDto.class));
         verify(componentService, atLeastOnce()).update(any(), any(ComponentUpdateDto.class));
         verify(componentService, never()).delete(any());
     }
@@ -610,13 +610,13 @@ public class ControlStructureServiceUnitTest {
         ));
 
         ComponentReadDto fatherRead = ComponentReadDto.builder().id(generatedFatherId).code("C.01").build();
-        when(componentService.insert(argThat(dto -> dto != null && "C.01".equals(dto.getCode())))).thenReturn(fatherRead);
+        when(componentService.insertAfterAnalysisValidation(argThat(dto -> dto != null && "C.01".equals(dto.getCode())))).thenReturn(fatherRead);
 
         // Act
         service.saveControlStructure(payload);
 
         // Assert
-        verify(componentService, times(1)).insert(argThat(dto -> dto != null && "C.01".equals(dto.getCode())));
+        verify(componentService, times(1)).insertAfterAnalysisValidation(argThat(dto -> dto != null && "C.01".equals(dto.getCode())));
         verify(componentService, times(1)).update(eq(existingChildId), any(ComponentUpdateDto.class));
         verify(componentService, never()).delete(any());
     }

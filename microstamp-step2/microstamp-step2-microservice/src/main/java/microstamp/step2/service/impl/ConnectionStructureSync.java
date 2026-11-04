@@ -49,7 +49,7 @@ public class ConnectionStructureSync {
 
         ConnectionInsertDto insertDto = ControlStructureMapper.toConnectionInsertDto(
                 connection, sourceId, targetId, context.getAnalysisId());
-        return connectionService.insert(insertDto).getId();
+        return connectionService.insertAfterAnalysisValidation(insertDto).getId();
     }
 
     private void updateExistingConnection(ControlStructureContext context, FacadeConnectionInsertDto connection) {
