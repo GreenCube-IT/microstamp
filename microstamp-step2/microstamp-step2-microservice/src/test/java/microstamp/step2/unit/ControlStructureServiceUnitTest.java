@@ -27,7 +27,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -1088,7 +1087,7 @@ public class ControlStructureServiceUnitTest {
     @Test
     @DisplayName("When a father is deleted but the child is sent in the payload without the " +
             "relationship > delete father and keep child successfully")
-    void whenFatherIsDeletedButChildIsSentWithoutFatherShouldDeleteFatherAndKeepChild(){
+    void whenFatherIsDeletedButChildIsSentWithoutFatherShouldDeleteFatherAndKeepChild() {
         UUID analysisId = UUID.randomUUID();
         UUID fatherId = UUID.randomUUID();
         UUID childId = UUID.randomUUID();
@@ -1143,5 +1142,88 @@ public class ControlStructureServiceUnitTest {
         verify(componentService, times(1)).update(eq(childId), argThat(dto ->
                 dto != null && dto.getCode().equals("C.02") && dto.getFatherId() == null));
 
+    }
+
+    @Test
+    @DisplayName("When a Component is added in the payload being the new target to a connection " +
+            "> persist the connection with the new target id")
+    void whenAComponentIsAddedBeingTheNewTargetToPersistedConnectionShouldUpdateTheConnectionCorrectly() {
+        UUID analysisId = UUID.randomUUID();
+        UUID aId = UUID.randomUUID();
+        UUID bId = UUID.randomUUID();
+        UUID connId = UUID.randomUUID();
+
+        ComponentReadDto dbComponentA = ComponentReadDto.builder()
+                .id(aId)
+                .name("Component A")
+                .code("C.A")
+                .type("Controller")
+                .build();
+
+        FacadeComponentInsertDto payloadComponentA = FacadeComponentInsertDto.builder()
+                .id(aId)
+                .name("Component A")
+                .code("C.A")
+                .type(CONTROLLER)
+                .build();
+
+        ComponentReadDto dbComponentB = ComponentReadDto.builder()
+                .id(bId)
+                .name("Component B")
+                .code("C.B")
+                .type("Controller")
+                .build();
+
+        FacadeComponentInsertDto payloadComponentB = FacadeComponentInsertDto.builder()
+                .id(bId)
+                .name("Component B")
+                .code("C.B")
+                .type(CONTROLLER)
+                .build();
+
+        FacadeComponentInsertDto payloadComponentC = FacadeComponentInsertDto.builder()
+                .id(null)
+                .name("Component C")
+                .code("C.C")
+                .type(CONTROLLER)
+                .build();
+
+        ConnectionReadDto dbConnection = ConnectionReadDto.builder()
+                .id(connId)
+                .code("Cn.AB")
+                .source(dbComponentA)
+                .target(dbComponentB)
+                .build();
+
+        FacadeConnectionInsertDto newTargetConnection = FacadeConnectionInsertDto.builder()
+                .id(connId)
+                .code("Cn.AC")
+                .sourceCode("C.A")
+                .targetCode("C.C")
+                .build();
+
+        ControlStructureInsertDto payload = ControlStructureInsertDto.builder().analysisId(analysisId)
+                .components(List.of(payloadComponentA, payloadComponentB, payloadComponentC))
+                .connections(List.of(newTargetConnection))
+                .build();
+
+        UUID cId = UUID.randomUUID();
+        ComponentReadDto dbComponentC = ComponentReadDto.builder()
+                .id(cId)
+                .name("Component C")
+                .code("C.C")
+                .type("Controller")
+                .build();
+
+        when(componentService.findByAnalysisId(analysisId)).thenReturn(List.of(dbComponentA, dbComponentB));
+        when(connectionService.findByAnalysisId(analysisId)).thenReturn(List.of(dbConnection));
+        when(interactionService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(componentService.insertAfterAnalysisValidation(argThat(dto -> dto != null && "C.C".equals(dto.getCode())))).thenReturn(dbComponentC);
+
+        service.saveControlStructure(payload);
+
+        verify(componentService, times(1))
+                .insertAfterAnalysisValidation(argThat(dto -> dto != null && "C.C".equals(dto.getCode())));
+        verify(connectionService).update(eq(connId), argThat(dto -> dto != null && "Cn.AC".equals(dto.getCode())));
     }
 }
