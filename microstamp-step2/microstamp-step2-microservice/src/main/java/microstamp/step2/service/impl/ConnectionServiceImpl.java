@@ -55,6 +55,14 @@ public class ConnectionServiceImpl implements ConnectionService {
     public ConnectionReadDto insert(ConnectionInsertDto connectionInsertDto) throws Step2NotFoundException {
         microStampAuthClient.getAnalysisById(connectionInsertDto.getAnalysisId());
 
+        return persistConnection(connectionInsertDto);
+    }
+
+    public ConnectionReadDto insertAfterAnalysisValidation(ConnectionInsertDto connectionInsertDto) throws Step2NotFoundException {
+        return persistConnection(connectionInsertDto);
+    }
+
+    private ConnectionReadDto persistConnection(ConnectionInsertDto connectionInsertDto) throws Step2NotFoundException {
         microstamp.step2.entity.Component source = componentRepository.findById(connectionInsertDto.getSourceId())
                 .orElseThrow(() -> new Step2NotFoundException("Source Component", connectionInsertDto.getSourceId().toString()));
 
