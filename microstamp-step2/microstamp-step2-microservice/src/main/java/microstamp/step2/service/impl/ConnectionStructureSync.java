@@ -27,18 +27,18 @@ public class ConnectionStructureSync {
 
     public void saveConnections(ControlStructureContext context) {
         for (FacadeConnectionInsertDto connection : context.getIncomingNewConnections()) {
-            UUID connectionId = saveNewConnection(context, connection);
+            UUID connectionId = persistConnection(context, connection);
             context.getConnectionCodeToIdMap().put(connection.getCode(), connectionId);
         }
     }
 
     public void updateExistingConnections(ControlStructureContext context) {
         for (FacadeConnectionInsertDto connection : context.getIncomingExistingConnections()) {
-            updateExistingConnection(context, connection);
+            updateConnection(context, connection);
         }
     }
 
-    private UUID saveNewConnection(ControlStructureContext context, FacadeConnectionInsertDto connection) {
+    private UUID persistConnection(ControlStructureContext context, FacadeConnectionInsertDto connection) {
         UUID sourceId = context.getComponentCodeToIdMap().get(connection.getSourceCode());
         UUID targetId = context.getComponentCodeToIdMap().get(connection.getTargetCode());
 
@@ -52,7 +52,7 @@ public class ConnectionStructureSync {
         return connectionService.insertAfterAnalysisValidation(insertDto).getId();
     }
 
-    private void updateExistingConnection(ControlStructureContext context, FacadeConnectionInsertDto connection) {
+    private void updateConnection(ControlStructureContext context, FacadeConnectionInsertDto connection) {
         UUID sourceId = context.getComponentCodeToIdMap().get(connection.getSourceCode());
         UUID targetId = context.getComponentCodeToIdMap().get(connection.getTargetCode());
 

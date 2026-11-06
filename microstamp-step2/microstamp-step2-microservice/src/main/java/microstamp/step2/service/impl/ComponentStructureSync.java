@@ -103,11 +103,15 @@ public class ComponentStructureSync {
             fatherCode = dbDto.getFather().getCode();
         }
 
+        String formattedName = null;
+        if (incomingDto.getType() != null)
+            formattedName = incomingDto.getType().getFormattedName();
+
         return !Objects.equals(incomingDto.getCode(), dbDto.getCode())
                 || !Objects.equals(incomingDto.getBorder(), dbDto.getBorder())
                 || !Objects.equals(incomingDto.getFatherCode(), fatherCode)
                 || !Objects.equals(incomingDto.getIsVisible(), dbDto.getIsVisible())
                 || !Objects.equals(incomingDto.getName(), dbDto.getName())
-                || !Objects.equals(incomingDto.getType().getFormattedName(), dbDto.getType());
+                || !Objects.equals(formattedName, dbDto.getType());
     }
 }
