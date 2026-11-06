@@ -8,9 +8,6 @@ import microstamp.step2.dto.connection.FacadeConnectionInsertDto;
 import microstamp.step2.dto.controlstructure.ControlStructureInsertDto;
 import microstamp.step2.dto.interaction.FacadeInteractionInsertDto;
 import microstamp.step2.dto.interaction.InteractionReadDto;
-import microstamp.step2.service.ComponentService;
-import microstamp.step2.service.ConnectionService;
-import microstamp.step2.service.InteractionService;
 
 import java.util.*;
 
