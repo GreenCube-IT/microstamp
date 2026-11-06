@@ -5,10 +5,7 @@ import microstamp.step2.dto.component.ComponentReadDto;
 import microstamp.step2.dto.connection.ConnectionReadDto;
 import microstamp.step2.dto.controlstructure.ControlStructureInsertDto;
 import microstamp.step2.dto.interaction.InteractionReadDto;
-import microstamp.step2.service.ComponentService;
-import microstamp.step2.service.ConnectionService;
-import microstamp.step2.service.ControlStructureService;
-import microstamp.step2.service.InteractionService;
+import microstamp.step2.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +28,9 @@ public class ControlStructureServiceImpl implements ControlStructureService {
     @Autowired
     private MicroStampAuthClient microStampAuthClient;
 
+    @Autowired
+    private EnvironmentService environmentService;
+
     @Override
     @Transactional
     public void saveControlStructure(ControlStructureInsertDto dto) {
@@ -44,11 +44,12 @@ public class ControlStructureServiceImpl implements ControlStructureService {
         ControlStructureContext context = new ControlStructureContext(
                 dto, dbComponents, dbConnections, dbInteractions);
 
-        ComponentStructureSync componentSync = new ComponentStructureSync(componentService);
+        ComponentStructureSync componentSync = new ComponentStructureSync(componentService, environmentService);
         ConnectionStructureSync connectionSync = new ConnectionStructureSync(connectionService);
         InteractionStructureSync interactionSync = new InteractionStructureSync(interactionService);
 
         componentSync.createComponentCodeToIdMap(context);
+        componentSync.resolveEnvironmentComponent(context);
         componentSync.saveNewComponents(context);
         componentSync.updateExistingComponents(context);
 

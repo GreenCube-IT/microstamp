@@ -10,6 +10,7 @@ import microstamp.step2.dto.connection.ConnectionUpdateDto;
 import microstamp.step2.dto.controlstructure.ControlStructureInsertDto;
 import microstamp.step2.dto.component.FacadeComponentInsertDto;
 import microstamp.step2.dto.connection.FacadeConnectionInsertDto;
+import microstamp.step2.dto.environment.EnvironmentReadDto;
 import microstamp.step2.dto.interaction.FacadeInteractionInsertDto;
 import microstamp.step2.dto.interaction.InteractionInsertDto;
 import microstamp.step2.dto.interaction.InteractionReadDto;
@@ -17,6 +18,7 @@ import microstamp.step2.dto.interaction.InteractionUpdateDto;
 import microstamp.step2.exception.Step2NotFoundException;
 import microstamp.step2.service.ComponentService;
 import microstamp.step2.service.ConnectionService;
+import microstamp.step2.service.EnvironmentService;
 import microstamp.step2.service.InteractionService;
 import microstamp.step2.service.impl.ControlStructureServiceImpl;
 
@@ -55,6 +57,9 @@ public class ControlStructureServiceUnitTest {
 
     @Mock
     private MicroStampAuthClient microStampAuthClient;
+
+    @Mock
+    private EnvironmentService environmentService;
 
     @Test
     @DisplayName("When analysis is not found > Throw an exception")
@@ -1226,4 +1231,89 @@ public class ControlStructureServiceUnitTest {
                 .insertAfterAnalysisValidation(argThat(dto -> dto != null && "C.C".equals(dto.getCode())));
         verify(connectionService).update(eq(connId), argThat(dto -> dto != null && "Cn.AC".equals(dto.getCode())));
     }
+
+    @Test
+    @DisplayName("When Environment flag is true in the dto and it's not " +
+            "present in the data base> Persist Environment Succesfully")
+    void whenAddingNotPersistedEnvironmentShouldInsertEnvironmentSuccesfully() {
+        UUID analysisId = UUID.randomUUID();
+        UUID environmentId = UUID.randomUUID();
+
+        ControlStructureInsertDto dto = ControlStructureInsertDto.builder()
+                .analysisId(analysisId)
+                .environmentIncluded(true)
+                .components(List.of())
+                .connections(List.of())
+                .build();
+
+        EnvironmentReadDto persistedEnvironment = EnvironmentReadDto.builder()
+                .id(environmentId)
+                .border(SOLID)
+                .code("Env")
+                .name("Environment")
+                .isVisible(true)
+                .variables(null)
+                .build();
+
+
+        when(interactionService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(connectionService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(componentService.findByAnalysisId(analysisId)).thenReturn(List.of());
+
+        when(environmentService.insert(analysisId)).thenReturn(persistedEnvironment);
+
+        service.saveControlStructure(dto);
+
+        verify(environmentService).insert(eq(analysisId));
+        verify(componentService, never())
+                .insertAfterAnalysisValidation(any(ComponentInsertDto.class));
+        verify(componentService, never())
+                .update(any(UUID.class), any(ComponentUpdateDto.class));
+        verify(componentService, never()).delete(any(UUID.class));
+    }
+
+    @Test
+    @DisplayName("When Environment is included and already persisted > Keep it without reinserting")
+    void whenKeepingPersistedEnvironmentShouldNotInsertOrDeleteIt() {
+        UUID analysisId = UUID.randomUUID();
+        UUID environmentId = UUID.randomUUID();
+
+        ControlStructureInsertDto dto = ControlStructureInsertDto.builder()
+                .analysisId(analysisId)
+                .environmentIncluded(true)
+                .components(List.of())
+                .connections(List.of())
+                .build();
+
+        EnvironmentReadDto persistedEnvironment = EnvironmentReadDto.builder()
+                .id(environmentId)
+                .code("Env")
+                .name("Environment")
+                .border(SOLID)
+                .isVisible(true)
+                .build();
+
+        ComponentReadDto environmentComponent = ComponentReadDto.builder()
+                .id(environmentId)
+                .code("Env")
+                .name("Environment")
+                .type("Environment")
+                .border(SOLID)
+                .isVisible(true)
+                .build();
+
+        when(componentService.findByAnalysisId(analysisId))
+                .thenReturn(List.of(environmentComponent));
+        when(connectionService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(interactionService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(environmentService.findByAnalysisId(analysisId)).thenReturn(persistedEnvironment);
+
+        service.saveControlStructure(dto);
+
+        verify(environmentService).findByAnalysisId(analysisId);
+        verify(environmentService, never()).insert(any(UUID.class));
+        verify(environmentService, never()).delete(any(UUID.class));
+        verify(componentService, never()).delete(environmentId);
+    }
+
 }

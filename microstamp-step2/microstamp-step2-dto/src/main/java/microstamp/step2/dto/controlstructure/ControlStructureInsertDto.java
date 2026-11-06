@@ -20,6 +20,8 @@ public class ControlStructureInsertDto {
     @NotNull
     private UUID analysisId;
 
+    private boolean environmentIncluded;
+
     @Valid
     private List<FacadeComponentInsertDto> components = new ArrayList<>();
 

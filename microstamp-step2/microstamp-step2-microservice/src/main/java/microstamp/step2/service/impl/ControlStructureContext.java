@@ -15,6 +15,7 @@ import java.util.*;
 public class ControlStructureContext {
 
     private final UUID analysisId;
+    private final boolean environmentIncluded;
     private final List<InteractionReadDto> dbInteractions;
     private final List<ConnectionReadDto> dbConnections;
     private final List<ComponentReadDto> dbComponents;
@@ -37,6 +38,8 @@ public class ControlStructureContext {
             List<ConnectionReadDto> dbConnections,
             List<InteractionReadDto> dbInteractions) {
         this.analysisId = dto.getAnalysisId();
+
+        this.environmentIncluded = dto.isEnvironmentIncluded();
 
         this.dbInteractions = dbInteractions;
         this.dbConnections = dbConnections;

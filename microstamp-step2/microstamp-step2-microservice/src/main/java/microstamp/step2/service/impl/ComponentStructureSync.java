@@ -4,9 +4,11 @@ import microstamp.step2.dto.component.ComponentInsertDto;
 import microstamp.step2.dto.component.ComponentReadDto;
 import microstamp.step2.dto.component.ComponentUpdateDto;
 import microstamp.step2.dto.component.FacadeComponentInsertDto;
+import microstamp.step2.dto.environment.EnvironmentReadDto;
 import microstamp.step2.exception.Step2NotFoundException;
 import microstamp.step2.mapper.ControlStructureMapper;
 import microstamp.step2.service.ComponentService;
+import microstamp.step2.service.EnvironmentService;
 
 import java.util.*;
 
@@ -14,8 +16,11 @@ public class ComponentStructureSync {
 
     private final ComponentService componentService;
 
-    public ComponentStructureSync(ComponentService componentService) {
+    private final EnvironmentService environmentService;
+
+    public ComponentStructureSync(ComponentService componentService, EnvironmentService environmentService) {
         this.componentService = componentService;
+        this.environmentService = environmentService;
     }
 
     public void createComponentCodeToIdMap(ControlStructureContext context) {
@@ -40,6 +45,18 @@ public class ComponentStructureSync {
         }
 
         relateFathersAfterBatchSave(context, componentsContainingFather);
+    }
+
+    public void resolveEnvironmentComponent(ControlStructureContext context) {
+        boolean isEnvironmentIncluded = context.isEnvironmentIncluded();
+        EnvironmentReadDto dbEnvironment = environmentService.findByAnalysisId(context.getAnalysisId());
+
+        if (isEnvironmentIncluded && dbEnvironment == null) {
+            EnvironmentReadDto persistedEnvironment = environmentService.insert(context.getAnalysisId());
+            context.getComponentCodeToIdMap().put(persistedEnvironment.getCode(), persistedEnvironment.getId());
+        } else if (!isEnvironmentIncluded && dbEnvironment != null) {
+            environmentService.delete(dbEnvironment.getId());
+        }
     }
 
     private void relateFathersAfterBatchSave(ControlStructureContext context, List<FacadeComponentInsertDto> componentsContainingFather) {
@@ -82,7 +99,7 @@ public class ComponentStructureSync {
         Set<UUID> deletedDescendants = new HashSet<>();
 
         for (ComponentReadDto component : context.getDbComponents()) {
-            if (!context.getIncomingExistingComponentIds().contains(component.getId()) && !deletedDescendants.contains(component.getId())) {
+            if (!"Env".equals(component.getCode()) && !context.getIncomingExistingComponentIds().contains(component.getId()) && !deletedDescendants.contains(component.getId())) {
                 recordDescendantIdsToSkip(deletedDescendants, component);
                 componentService.delete(component.getId());
             }
