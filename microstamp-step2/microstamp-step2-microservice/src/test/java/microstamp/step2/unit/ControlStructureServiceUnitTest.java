@@ -272,11 +272,15 @@ public class ControlStructureServiceUnitTest {
         FacadeComponentInsertDto newComp1 = new FacadeComponentInsertDto();
         newComp1.setCode("C.01");
         newComp1.setName("Driver");
+        newComp1.setBorder(SOLID);
+        newComp1.setIsVisible(true);
         newComp1.setType(CONTROLLER);
 
         FacadeComponentInsertDto newComp2 = new FacadeComponentInsertDto();
         newComp2.setCode("C.02");
         newComp2.setName("Car");
+        newComp2.setBorder(DASHED);
+        newComp2.setIsVisible(false);
         newComp2.setType(CONTROLLED_PROCESS);
 
         FacadeInteractionInsertDto newInteraction = new FacadeInteractionInsertDto();
@@ -318,9 +322,39 @@ public class ControlStructureServiceUnitTest {
 
         // Assert
         verify(microStampAuthClient, times(1)).getAnalysisById(analysisId);
-        verify(componentService, times(2)).insertAfterAnalysisValidation(any(ComponentInsertDto.class));
-        verify(connectionService, times(1)).insertAfterAnalysisValidation(any(ConnectionInsertDto.class));
-        verify(interactionService, times(1)).insert(any(InteractionInsertDto.class));
+        verify(componentService).insertAfterAnalysisValidation(argThat(dto ->
+                dto != null
+                        && "C.01".equals(dto.getCode())
+                        && "Driver".equals(dto.getName())
+                        && SOLID.equals(dto.getBorder())
+                        && Boolean.TRUE.equals(dto.getIsVisible())
+                        && CONTROLLER.equals(dto.getType())
+                        && analysisId.equals(dto.getAnalysisId())
+        ));
+        verify(componentService).insertAfterAnalysisValidation(argThat(dto ->
+                dto != null
+                        && "C.02".equals(dto.getCode())
+                        && "Car".equals(dto.getName())
+                        && DASHED.equals(dto.getBorder())
+                        && Boolean.FALSE.equals(dto.getIsVisible())
+                        && CONTROLLED_PROCESS.equals(dto.getType())
+                        && analysisId.equals(dto.getAnalysisId())
+        ));
+        verify(connectionService).insertAfterAnalysisValidation(argThat(dto ->
+                dto != null
+                        && "Cn.01".equals(dto.getCode())
+                        && generatedCompId1.equals(dto.getSourceId())
+                        && generatedCompId2.equals(dto.getTargetId())
+                        && SOLID.equals(dto.getStyle())
+                        && analysisId.equals(dto.getAnalysisId())
+        ));
+        verify(interactionService).insert(argThat(dto ->
+                dto != null
+                        && "I.01".equals(dto.getCode())
+                        && "Speed up".equals(dto.getName())
+                        && CONTROL_ACTION.equals(dto.getInteractionType())
+                        && generatedConnId.equals(dto.getConnectionId())
+        ));
     }
 
     @Test
@@ -336,6 +370,8 @@ public class ControlStructureServiceUnitTest {
         existingComp.setId(compId);
         existingComp.setCode("C.01");
         existingComp.setName("Updated driver");
+        existingComp.setBorder(DASHED);
+        existingComp.setIsVisible(false);
         existingComp.setType(CONTROLLER);
 
         FacadeInteractionInsertDto existingInteraction = new FacadeInteractionInsertDto();
@@ -360,22 +396,58 @@ public class ControlStructureServiceUnitTest {
 
         // Current Db state mocks
         when(interactionService.findByAnalysisId(analysisId)).thenReturn(List.of(
-                InteractionReadDto.builder().id(interactionId).build()
+                InteractionReadDto.builder()
+                        .id(interactionId)
+                        .code("I.01")
+                        .name("Old action")
+                        .interactionType(FEEDBACK)
+                        .build()
         ));
         when(connectionService.findByAnalysisId(analysisId)).thenReturn(List.of(
-                ConnectionReadDto.builder().id(connId).build()
+                ConnectionReadDto.builder()
+                        .id(connId)
+                        .code("Cn.01")
+                        .source(ComponentReadDto.builder().id(compId).code("C.01").build())
+                        .target(ComponentReadDto.builder().id(compId).code("C.01").build())
+                        .style(DASHED)
+                        .build()
         ));
         when(componentService.findByAnalysisId(analysisId)).thenReturn(List.of(
-                ComponentReadDto.builder().id(compId).code("C.01").build()
+                ComponentReadDto.builder()
+                        .id(compId)
+                        .code("C.01")
+                        .name("Old driver")
+                        .border(SOLID)
+                        .isVisible(true)
+                        .type("Controller")
+                        .build()
         ));
 
         // Act
         service.saveControlStructure(payload);
 
         // Assert
-        verify(componentService, times(1)).update(eq(compId), any(ComponentUpdateDto.class));
-        verify(connectionService, times(1)).update(eq(connId), any(ConnectionUpdateDto.class));
-        verify(interactionService, times(1)).update(eq(interactionId), any(InteractionUpdateDto.class));
+        verify(componentService).update(eq(compId), argThat(dto ->
+                dto != null
+                        && "Updated driver".equals(dto.getName())
+                        && "C.01".equals(dto.getCode())
+                        && DASHED.equals(dto.getBorder())
+                        && Boolean.FALSE.equals(dto.getIsVisible())
+                        && CONTROLLER.equals(dto.getType())
+        ));
+        verify(connectionService).update(eq(connId), argThat(dto ->
+                dto != null
+                        && "Cn.01".equals(dto.getCode())
+                        && compId.equals(dto.getSourceId())
+                        && compId.equals(dto.getTargetId())
+                        && SOLID.equals(dto.getStyle())
+        ));
+        verify(interactionService).update(eq(interactionId), argThat(dto ->
+                dto != null
+                        && "I.01".equals(dto.getCode())
+                        && "Speed up".equals(dto.getName())
+                        && CONTROL_ACTION.equals(dto.getInteractionType())
+        ));
     }
 
     @Test
@@ -452,6 +524,8 @@ public class ControlStructureServiceUnitTest {
         existingFather.setId(fatherCompId);
         existingFather.setCode("C.01");
         existingFather.setName("Controller 1");
+        existingFather.setBorder(SOLID);
+        existingFather.setIsVisible(true);
         existingFather.setType(CONTROLLER);
 
         // New child referencing the father "C.01"
@@ -471,7 +545,14 @@ public class ControlStructureServiceUnitTest {
         when(interactionService.findByAnalysisId(analysisId)).thenReturn(List.of());
         when(connectionService.findByAnalysisId(analysisId)).thenReturn(List.of());
         when(componentService.findByAnalysisId(analysisId)).thenReturn(List.of(
-                ComponentReadDto.builder().id(fatherCompId).code("C.01").build()
+                ComponentReadDto.builder()
+                        .id(fatherCompId)
+                        .code("C.01")
+                        .name("Controller 1")
+                        .border(SOLID)
+                        .isVisible(true)
+                        .type("Controller")
+                        .build()
         ));
 
         // child insert mock return
@@ -482,8 +563,18 @@ public class ControlStructureServiceUnitTest {
         service.saveControlStructure(payload);
 
         // Assert
-        verify(componentService, times(1)).update(eq(fatherCompId), any(ComponentUpdateDto.class));
-        verify(componentService, times(1)).insertAfterAnalysisValidation(argThat(dto -> dto != null && "C.02".equals(dto.getCode())));
+        verify(componentService).update(eq(childCompId), argThat(dto ->
+                dto != null
+                        && fatherCompId.equals(dto.getFatherId())
+                        && "C.02".equals(dto.getCode())
+        ));
+        verify(componentService).insertAfterAnalysisValidation(argThat(dto ->
+                dto != null
+                        && "C.02".equals(dto.getCode())
+                        && "Child 1".equals(dto.getName())
+                        && analysisId.equals(dto.getAnalysisId())
+        ));
+        verify(componentService, never()).update(eq(fatherCompId), any(ComponentUpdateDto.class));
         verify(componentService, never()).delete(any());
     }
 
@@ -528,7 +619,9 @@ public class ControlStructureServiceUnitTest {
 
         // Assert
         verify(componentService, times(1)).update(eq(fatherCompId), any(ComponentUpdateDto.class));
-        verify(componentService, times(1)).update(eq(childCompId), any(ComponentUpdateDto.class));
+        verify(componentService, times(1)).update(eq(childCompId), argThat(dto ->
+                dto != null && fatherCompId.equals(dto.getFatherId())
+        ));
         verify(componentService, never()).insert(any());
         verify(componentService, never()).delete(any());
     }
@@ -574,8 +667,23 @@ public class ControlStructureServiceUnitTest {
         service.saveControlStructure(payload);
 
         // Assert
-        verify(componentService, times(2)).insertAfterAnalysisValidation(any(ComponentInsertDto.class));
-        verify(componentService, atLeastOnce()).update(any(), any(ComponentUpdateDto.class));
+        verify(componentService).insertAfterAnalysisValidation(argThat(dto ->
+                dto != null
+                        && "C.01".equals(dto.getCode())
+                        && "New Controller".equals(dto.getName())
+                        && analysisId.equals(dto.getAnalysisId())
+        ));
+        verify(componentService).insertAfterAnalysisValidation(argThat(dto ->
+                dto != null
+                        && "C.02".equals(dto.getCode())
+                        && "New Child".equals(dto.getName())
+                        && analysisId.equals(dto.getAnalysisId())
+        ));
+        verify(componentService).update(eq(generatedChildId), argThat(dto ->
+                dto != null
+                        && generatedFatherId.equals(dto.getFatherId())
+                        && "C.02".equals(dto.getCode())
+        ));
         verify(componentService, never()).delete(any());
     }
 
@@ -621,7 +729,9 @@ public class ControlStructureServiceUnitTest {
 
         // Assert
         verify(componentService, times(1)).insertAfterAnalysisValidation(argThat(dto -> dto != null && "C.01".equals(dto.getCode())));
-        verify(componentService, times(1)).update(eq(existingChildId), any(ComponentUpdateDto.class));
+        verify(componentService, times(1)).update(eq(existingChildId), argThat(dto ->
+                dto != null && generatedFatherId.equals(dto.getFatherId())
+        ));
         verify(componentService, never()).delete(any());
     }
 
@@ -1235,7 +1345,7 @@ public class ControlStructureServiceUnitTest {
     @Test
     @DisplayName("When Environment flag is true in the dto and it's not " +
             "present in the data base> Persist Environment Succesfully")
-    void whenAddingNotPersistedEnvironmentShouldInsertEnvironmentSuccesfully() {
+    void whenAddingNotPersistedEnvironmentShouldInsertEnvironmentSuccessfully() {
         UUID analysisId = UUID.randomUUID();
         UUID environmentId = UUID.randomUUID();
 
@@ -1273,7 +1383,7 @@ public class ControlStructureServiceUnitTest {
     }
 
     @Test
-    @DisplayName("When Environment is included and already persisted > Keep it without reinserting")
+    @DisplayName("When EnvironmentIncluded equals true and already persisted > Keep it without reinserting")
     void whenKeepingPersistedEnvironmentShouldNotInsertOrDeleteIt() {
         UUID analysisId = UUID.randomUUID();
         UUID environmentId = UUID.randomUUID();
@@ -1314,6 +1424,69 @@ public class ControlStructureServiceUnitTest {
         verify(environmentService, never()).insert(any(UUID.class));
         verify(environmentService, never()).delete(any(UUID.class));
         verify(componentService, never()).delete(environmentId);
+    }
+
+    @Test
+    @DisplayName("When Environment is excluded and persisted > Delete it")
+    void whenExcludingPersistedEnvironmentShouldDeleteIt() {
+        UUID analysisId = UUID.randomUUID();
+        UUID environmentId = UUID.randomUUID();
+
+        ControlStructureInsertDto dto = ControlStructureInsertDto.builder()
+                .analysisId(analysisId)
+                .environmentIncluded(false)
+                .components(List.of())
+                .connections(List.of())
+                .build();
+
+        EnvironmentReadDto persistedEnvironment = EnvironmentReadDto.builder()
+                .id(environmentId)
+                .code("Env")
+                .name("Environment")
+                .build();
+        ComponentReadDto environmentComponent = ComponentReadDto.builder()
+                .id(environmentId)
+                .code("Env")
+                .name("Environment")
+                .type("Environment")
+                .build();
+
+        when(componentService.findByAnalysisId(analysisId)).thenReturn(List.of(environmentComponent));
+        when(connectionService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(interactionService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(environmentService.findByAnalysisId(analysisId)).thenReturn(persistedEnvironment);
+
+        service.saveControlStructure(dto);
+
+        verify(environmentService).findByAnalysisId(analysisId);
+        verify(environmentService).delete(environmentId);
+        verify(environmentService, never()).insert(any(UUID.class));
+        verify(componentService, never()).delete(any(UUID.class));
+    }
+
+    @Test
+    @DisplayName("When Environment is excluded and not persisted > Do not insert or delete it")
+    void whenExcludingEnvironmentThatIsNotPersistedShouldNotInsertOrDeleteIt() {
+        UUID analysisId = UUID.randomUUID();
+
+        ControlStructureInsertDto dto = ControlStructureInsertDto.builder()
+                .analysisId(analysisId)
+                .environmentIncluded(false)
+                .components(List.of())
+                .connections(List.of())
+                .build();
+
+        when(componentService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(connectionService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(interactionService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(environmentService.findByAnalysisId(analysisId)).thenReturn(null);
+
+        service.saveControlStructure(dto);
+
+        verify(environmentService).findByAnalysisId(analysisId);
+        verify(environmentService, never()).insert(any(UUID.class));
+        verify(environmentService, never()).delete(any(UUID.class));
+        verify(componentService, never()).delete(any(UUID.class));
     }
 
 }
