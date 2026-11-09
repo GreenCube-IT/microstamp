@@ -16,14 +16,11 @@ public class ComponentStructureSync {
 
     private final ComponentService componentService;
 
-    private final EnvironmentService environmentService;
-
-    public ComponentStructureSync(ComponentService componentService, EnvironmentService environmentService) {
+    public ComponentStructureSync(ComponentService componentService) {
         this.componentService = componentService;
-        this.environmentService = environmentService;
     }
 
-    public void createComponentCodeToIdMap(ControlStructureContext context) {
+    public void putPayloadExistingComponentsInCodeToIdMap(ControlStructureContext context) {
         for (FacadeComponentInsertDto component : context.getIncomingExistingComponents()) {
             context.getComponentCodeToIdMap().put(component.getCode(), component.getId());
         }
@@ -45,18 +42,6 @@ public class ComponentStructureSync {
         }
 
         relateFathersAfterBatchSave(context, componentsContainingFather);
-    }
-
-    public void resolveEnvironmentComponent(ControlStructureContext context) {
-        boolean isEnvironmentIncluded = context.isEnvironmentIncluded();
-        EnvironmentReadDto dbEnvironment = environmentService.findByAnalysisId(context.getAnalysisId());
-
-        if (isEnvironmentIncluded && dbEnvironment == null) {
-            EnvironmentReadDto persistedEnvironment = environmentService.insert(context.getAnalysisId());
-            context.getComponentCodeToIdMap().put(persistedEnvironment.getCode(), persistedEnvironment.getId());
-        } else if (!isEnvironmentIncluded && dbEnvironment != null) {
-            environmentService.delete(dbEnvironment.getId());
-        }
     }
 
     private void relateFathersAfterBatchSave(ControlStructureContext context, List<FacadeComponentInsertDto> componentsContainingFather) {
@@ -99,7 +84,9 @@ public class ComponentStructureSync {
         Set<UUID> deletedDescendants = new HashSet<>();
 
         for (ComponentReadDto component : context.getDbComponents()) {
-            if (!"Env".equals(component.getCode()) && !context.getIncomingExistingComponentIds().contains(component.getId()) && !deletedDescendants.contains(component.getId())) {
+            if (!Objects.equals(context.getEnvironmentId(), component.getId())
+                    && !context.getIncomingExistingComponentIds().contains(component.getId())
+                    && !deletedDescendants.contains(component.getId())) {
                 recordDescendantIdsToSkip(deletedDescendants, component);
                 componentService.delete(component.getId());
             }

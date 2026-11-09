@@ -1,6 +1,7 @@
 package microstamp.step2.service.impl;
 
 import lombok.Getter;
+import lombok.Setter;
 import microstamp.step2.dto.component.ComponentReadDto;
 import microstamp.step2.dto.component.FacadeComponentInsertDto;
 import microstamp.step2.dto.connection.ConnectionReadDto;
@@ -16,6 +17,8 @@ public class ControlStructureContext {
 
     private final UUID analysisId;
     private final boolean environmentIncluded;
+    @Setter
+    private UUID environmentId;
     private final List<InteractionReadDto> dbInteractions;
     private final List<ConnectionReadDto> dbConnections;
     private final List<ComponentReadDto> dbComponents;

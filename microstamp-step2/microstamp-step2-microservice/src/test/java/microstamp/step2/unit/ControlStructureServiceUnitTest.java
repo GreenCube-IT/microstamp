@@ -6,15 +6,12 @@ import microstamp.step2.dto.component.ComponentReadDto;
 import microstamp.step2.dto.component.ComponentUpdateDto;
 import microstamp.step2.dto.connection.ConnectionInsertDto;
 import microstamp.step2.dto.connection.ConnectionReadDto;
-import microstamp.step2.dto.connection.ConnectionUpdateDto;
 import microstamp.step2.dto.controlstructure.ControlStructureInsertDto;
 import microstamp.step2.dto.component.FacadeComponentInsertDto;
 import microstamp.step2.dto.connection.FacadeConnectionInsertDto;
 import microstamp.step2.dto.environment.EnvironmentReadDto;
 import microstamp.step2.dto.interaction.FacadeInteractionInsertDto;
-import microstamp.step2.dto.interaction.InteractionInsertDto;
 import microstamp.step2.dto.interaction.InteractionReadDto;
-import microstamp.step2.dto.interaction.InteractionUpdateDto;
 import microstamp.step2.exception.Step2NotFoundException;
 import microstamp.step2.service.ComponentService;
 import microstamp.step2.service.ConnectionService;
@@ -25,6 +22,7 @@ import microstamp.step2.service.impl.ControlStructureServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -688,7 +686,7 @@ public class ControlStructureServiceUnitTest {
     }
 
     @Test
-    @DisplayName("When child component is persisted and new father is added in payload > Insert father and update child with new father relation successfully")
+    @DisplayName("When child component is persisted and new father is added in payload > Insert father and update child with new father relationship successfully")
     void whenChildPersistedAndFatherInPayloadInsertsFatherAndUpdateChildSuccessfully() {
         UUID analysisId = UUID.randomUUID();
         UUID generatedFatherId = UUID.randomUUID();
@@ -1423,6 +1421,130 @@ public class ControlStructureServiceUnitTest {
         verify(environmentService).findByAnalysisId(analysisId);
         verify(environmentService, never()).insert(any(UUID.class));
         verify(environmentService, never()).delete(any(UUID.class));
+        verify(componentService, never()).delete(environmentId);
+    }
+
+    @Test
+    @DisplayName("When a new connection references a persisted Environment > Resolve its id")
+    void whenAddingConnectionToPersistedEnvironmentShouldResolveEnvironmentId() {
+        UUID analysisId = UUID.randomUUID();
+        UUID environmentId = UUID.randomUUID();
+        UUID componentId = UUID.randomUUID();
+        UUID connectionId = UUID.randomUUID();
+
+        ControlStructureInsertDto dto = ControlStructureInsertDto.builder()
+                .analysisId(analysisId)
+                .environmentIncluded(true)
+                .components(List.of(FacadeComponentInsertDto.builder()
+                        .id(componentId)
+                        .code("C.01")
+                        .name("Controller")
+                        .type(CONTROLLER)
+                        .build()))
+                .connections(List.of(FacadeConnectionInsertDto.builder()
+                        .code("Cn.01")
+                        .sourceCode("Env")
+                        .targetCode("C.01")
+                        .interactions(List.of())
+                        .build()))
+                .build();
+
+        EnvironmentReadDto persistedEnvironment = EnvironmentReadDto.builder()
+                .id(environmentId)
+                .code("Env")
+                .name("Environment")
+                .build();
+        ComponentReadDto dbComponent = ComponentReadDto.builder()
+                .id(componentId)
+                .code("C.01")
+                .name("Controller")
+                .type("Controller")
+                .build();
+        ConnectionReadDto savedConnection = ConnectionReadDto.builder()
+                .id(connectionId)
+                .code("Cn.01")
+                .source(ComponentReadDto.builder()
+                        .id(environmentId)
+                        .code("Env")
+                        .name("Environment")
+                        .type("Environment")
+                        .build())
+                .target(dbComponent)
+                .build();
+
+        when(componentService.findByAnalysisId(analysisId)).thenReturn(List.of(dbComponent));
+        when(connectionService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(interactionService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(environmentService.findByAnalysisId(analysisId)).thenReturn(persistedEnvironment);
+        when(connectionService.insertAfterAnalysisValidation(any(ConnectionInsertDto.class)))
+                .thenReturn(savedConnection);
+
+        service.saveControlStructure(dto);
+
+        verify(connectionService).insertAfterAnalysisValidation(argThat(insertDto ->
+                environmentId.equals(insertDto.getSourceId())
+                        && componentId.equals(insertDto.getTargetId())));
+        verify(environmentService, never()).insert(any(UUID.class));
+        verify(componentService, never()).delete(environmentId);
+    }
+
+    @Test
+    @DisplayName("When removing a persisted Environment > Delete its connections before the Environment")
+    void whenRemovingPersistedEnvironmentShouldDeleteConnectionsBeforeEnvironment() {
+        UUID analysisId = UUID.randomUUID();
+        UUID environmentId = UUID.randomUUID();
+        UUID componentId = UUID.randomUUID();
+        UUID connectionId = UUID.randomUUID();
+
+        ControlStructureInsertDto dto = ControlStructureInsertDto.builder()
+                .analysisId(analysisId)
+                .environmentIncluded(false)
+                .components(List.of(FacadeComponentInsertDto.builder()
+                        .id(componentId)
+                        .code("C.01")
+                        .name("Controller")
+                        .type(CONTROLLER)
+                        .build()))
+                .connections(List.of())
+                .build();
+
+        EnvironmentReadDto persistedEnvironment = EnvironmentReadDto.builder()
+                .id(environmentId)
+                .code("Env")
+                .name("Environment")
+                .build();
+        ComponentReadDto environmentComponent = ComponentReadDto.builder()
+                .id(environmentId)
+                .code("Env")
+                .name("Environment")
+                .type("Environment")
+                .build();
+        ComponentReadDto dbComponent = ComponentReadDto.builder()
+                .id(componentId)
+                .code("C.01")
+                .name("Controller")
+                .type("Controller")
+                .build();
+        ConnectionReadDto environmentConnection = ConnectionReadDto.builder()
+                .id(connectionId)
+                .code("Cn.01")
+                .source(environmentComponent)
+                .target(dbComponent)
+                .interactions(List.of())
+                .build();
+
+        when(componentService.findByAnalysisId(analysisId))
+                .thenReturn(List.of(environmentComponent, dbComponent));
+        when(connectionService.findByAnalysisId(analysisId))
+                .thenReturn(List.of(environmentConnection));
+        when(interactionService.findByAnalysisId(analysisId)).thenReturn(List.of());
+        when(environmentService.findByAnalysisId(analysisId)).thenReturn(persistedEnvironment);
+
+        service.saveControlStructure(dto);
+
+        InOrder inOrder = inOrder(connectionService, environmentService);
+        inOrder.verify(connectionService).delete(connectionId);
+        inOrder.verify(environmentService).delete(environmentId);
         verify(componentService, never()).delete(environmentId);
     }
 

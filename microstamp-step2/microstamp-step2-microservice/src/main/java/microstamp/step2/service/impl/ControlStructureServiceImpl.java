@@ -44,12 +44,13 @@ public class ControlStructureServiceImpl implements ControlStructureService {
         ControlStructureContext context = new ControlStructureContext(
                 dto, dbComponents, dbConnections, dbInteractions);
 
-        ComponentStructureSync componentSync = new ComponentStructureSync(componentService, environmentService);
+        ComponentStructureSync componentSync = new ComponentStructureSync(componentService);
+        EnvironmentStructureSync environmentSync = new EnvironmentStructureSync(environmentService);
         ConnectionStructureSync connectionSync = new ConnectionStructureSync(connectionService);
         InteractionStructureSync interactionSync = new InteractionStructureSync(interactionService);
 
-        componentSync.createComponentCodeToIdMap(context);
-        componentSync.resolveEnvironmentComponent(context);
+        componentSync.putPayloadExistingComponentsInCodeToIdMap(context);
+        environmentSync.synchronizeEnvironment(context);
         componentSync.saveNewComponents(context);
         componentSync.updateExistingComponents(context);
 
@@ -62,5 +63,6 @@ public class ControlStructureServiceImpl implements ControlStructureService {
         interactionSync.cleanUpRemoved(context);
         connectionSync.cleanUpRemoved(context);
         componentSync.cleanUpRemoved(context);
+        environmentSync.cleanUpRemoved(context);
     }
 }
