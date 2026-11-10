@@ -56,6 +56,11 @@ type ConnectionDraft = Omit<ConnectionData["connection"], "interactions"> & {
 };
 type PropertiesDraft = ComponentDraft | ConnectionDraft;
 
+interface VisualControlStructureProps {
+	environmentIncluded: boolean;
+	onEnvironmentIncludedChange: (included: boolean) => void;
+}
+
 const componentTypes: { value: IComponentType; label: string }[] = [
 	{ value: IComponentType.CONTROLLER, label: "Controller" },
 	{ value: IComponentType.CONTROLLED_PROCESS, label: "Controlled process" },
@@ -71,6 +76,17 @@ const interactionTypes: { value: IInteractionType; label: string }[] = [
 	{ value: IInteractionType.PROCESS_OUTPUT, label: "Process output" },
 	{ value: IInteractionType.DISTURBANCE, label: "Disturbance" }
 ];
+
+const defaultInteractionTypes = [
+	IInteractionType.CONTROL_ACTION,
+	IInteractionType.FEEDBACK,
+	IInteractionType.COMMUNICATION_CHANNEL
+];
+const sourceEnvironmentInteractionTypes = [
+	IInteractionType.PROCESS_INPUT,
+	IInteractionType.DISTURBANCE
+];
+const targetEnvironmentInteractionTypes = [IInteractionType.PROCESS_OUTPUT];
 
 const componentTypeLabels: Record<IComponentType, string> = {
 	[IComponentType.CONTROLLER]: "Controller",
@@ -154,6 +170,50 @@ function getDiagramData(cell: joint.dia.Cell): DiagramData | null {
 		: null;
 }
 
+function getEndpointComponentType(
+	graph: joint.dia.Graph,
+	link: joint.dia.Cell,
+	end: "source" | "target"
+) {
+	const endpoint: unknown = link.get(end);
+	if (!endpoint || typeof endpoint !== "object" || !("id" in endpoint)) return null;
+
+	const endpointId = endpoint.id;
+	if (typeof endpointId !== "string" && typeof endpointId !== "number") return null;
+
+	const cell = graph.getCell(String(endpointId));
+	const data = cell ? getDiagramData(cell) : null;
+	return data?.kind === "component" ? data.component.type : null;
+}
+
+function getAllowedInteractionTypes(graph: joint.dia.Graph, link: joint.dia.Cell) {
+	if (getEndpointComponentType(graph, link, "source") === IComponentType.ENVIRONMENT) {
+		return sourceEnvironmentInteractionTypes;
+	}
+	if (getEndpointComponentType(graph, link, "target") === IComponentType.ENVIRONMENT) {
+		return targetEnvironmentInteractionTypes;
+	}
+	return defaultInteractionTypes;
+}
+
+function normalizeConnectionInteractions(graph: joint.dia.Graph, link: joint.dia.Link) {
+	const data = getDiagramData(link);
+	if (data?.kind !== "connection") return;
+
+	const allowedTypes = getAllowedInteractionTypes(graph, link);
+	const interactions = data.connection.interactions.map(interaction =>
+		allowedTypes.includes(interaction.interactionType)
+			? interaction
+			: { ...interaction, interactionType: allowedTypes[0] }
+	);
+	const nextData: ConnectionData = {
+		kind: "connection",
+		connection: { ...data.connection, interactions }
+	};
+	link.set("data", nextData);
+	setConnectionLabels(link, interactions);
+}
+
 function getComponentDescendantIds(graph: joint.dia.Graph, componentClientId: string) {
 	const descendantIds = new Set<string>();
 	const pendingIds = [componentClientId];
@@ -182,10 +242,12 @@ function removeDiagramCell(
 	graph: joint.dia.Graph,
 	cell: joint.dia.Cell,
 	visited = new Set<string>()
-) {
+): boolean {
 	const data = getDiagramData(cell);
+	let environmentRemoved =
+		data?.kind === "component" && data.component.type === IComponentType.ENVIRONMENT;
 	if (data?.kind === "component") {
-		if (visited.has(data.component.clientId)) return;
+		if (visited.has(data.component.clientId)) return false;
 		visited.add(data.component.clientId);
 
 		graph.getCells().forEach(candidate => {
@@ -194,11 +256,13 @@ function removeDiagramCell(
 				candidateData?.kind === "component" &&
 				candidateData.component.fatherClientId === data.component.clientId
 			) {
-				removeDiagramCell(graph, candidate, visited);
+				environmentRemoved =
+					removeDiagramCell(graph, candidate, visited) || environmentRemoved;
 			}
 		});
 	}
 	cell.remove();
+	return environmentRemoved;
 }
 
 function nextCode(graph: joint.dia.Graph, prefix: "C" | "Cn") {
@@ -270,15 +334,20 @@ function setConnectionLabels(link: joint.dia.Link, interactions: InteractionData
 	);
 }
 
-function VisualControlStructure() {
+function VisualControlStructure({
+	environmentIncluded,
+	onEnvironmentIncludedChange
+}: VisualControlStructureProps) {
 	const canvasRef = useRef<HTMLDivElement>(null);
 	const graphRef = useRef<joint.dia.Graph | null>(null);
 	const paperRef = useRef<joint.dia.Paper | null>(null);
 	const selectedCellRef = useRef<joint.dia.Cell | null>(null);
+	const environmentIncludedChangeRef = useRef(onEnvironmentIncludedChange);
 	const scaleRef = useRef(1);
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [draft, setDraft] = useState<PropertiesDraft | null>(null);
 	const [zoom, setZoom] = useState(100);
+	environmentIncludedChangeRef.current = onEnvironmentIncludedChange;
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -382,6 +451,7 @@ function VisualControlStructure() {
 				if (previous.isLink()) paper.findViewByModel(previous)?.removeTools();
 			}
 
+			if (cell.isLink()) normalizeConnectionInteractions(graph, cell);
 			selectedCellRef.current = cell;
 			setSelectedId(cell.id.toString());
 			const data = getDiagramData(cell);
@@ -480,6 +550,11 @@ function VisualControlStructure() {
 		paper.on("link:connect", (linkView, _event, _elementView, _magnet, arrowhead) => {
 			setSideRatioAnchor(linkView, arrowhead);
 			setSideRatioAnchor(linkView, arrowhead === "source" ? "target" : "source");
+			normalizeConnectionInteractions(graph, linkView.model);
+			selectCell(linkView.model);
+		});
+		paper.on("link:disconnect", linkView => {
+			normalizeConnectionInteractions(graph, linkView.model);
 			selectCell(linkView.model);
 		});
 
@@ -540,7 +615,8 @@ function VisualControlStructure() {
 			if (target.matches("input, select, textarea")) return;
 			if (event.key === "Escape") deselect();
 			if ((event.key === "Delete" || event.key === "Backspace") && selectedCellRef.current) {
-				removeDiagramCell(graph, selectedCellRef.current);
+				const environmentRemoved = removeDiagramCell(graph, selectedCellRef.current);
+				if (environmentRemoved) environmentIncludedChangeRef.current(false);
 				deselect();
 			}
 		};
@@ -570,8 +646,25 @@ function VisualControlStructure() {
 		const canvas = canvasRef.current;
 		if (!graph || !paper || !canvas) return;
 
-		const code = nextCode(graph, "C");
-		const name = `${componentTypeLabels[type]} ${code.split(".")[1]}`;
+		const isEnvironment = type === IComponentType.ENVIRONMENT;
+		if (
+			isEnvironment &&
+			(environmentIncluded ||
+				graph.getCells().some(cell => {
+					const data = getDiagramData(cell);
+					return (
+						data?.kind === "component" &&
+						data.component.type === IComponentType.ENVIRONMENT
+					);
+				}))
+		) {
+			return;
+		}
+
+		const code = isEnvironment ? "Env" : nextCode(graph, "C");
+		const name = isEnvironment
+			? "Environment"
+			: `${componentTypeLabels[type]} ${code.split(".")[1]}`;
 		const size = { width: 190, height: 76 };
 		const translation = paper.translate();
 		const scale = paper.scale().sx;
@@ -620,6 +713,7 @@ function VisualControlStructure() {
 			}
 		});
 		graph.addCell(component);
+		if (isEnvironment) onEnvironmentIncludedChange(true);
 		selectCellById(component);
 		paper.findViewByModel(component)?.highlight(undefined, {
 			highlighter: {
@@ -637,6 +731,9 @@ function VisualControlStructure() {
 		if (previous) {
 			paperRef.current?.findViewByModel(previous)?.unhighlight();
 			if (previous.isLink()) paperRef.current?.findViewByModel(previous)?.removeTools();
+		}
+		if (cell.isLink() && graphRef.current) {
+			normalizeConnectionInteractions(graphRef.current, cell);
 		}
 		selectedCellRef.current = cell;
 		setSelectedId(cell.id.toString());
@@ -719,15 +816,19 @@ function VisualControlStructure() {
 	const deleteSelected = () => {
 		const graph = graphRef.current;
 		const cell = selectedCellRef.current;
-		if (graph && cell) removeDiagramCell(graph, cell);
+		if (graph && cell && removeDiagramCell(graph, cell)) {
+			onEnvironmentIncludedChange(false);
+		}
 		selectedCellRef.current = null;
 		setSelectedId(null);
 		setDraft(null);
 	};
 
 	const clearDiagram = () => {
-		if (!graphRef.current || !window.confirm("Clear all components and connections?")) return;
-		graphRef.current.clear();
+		const graph = graphRef.current;
+		if (!graph || !window.confirm("Clear all components and connections?")) return;
+		graph.clear();
+		onEnvironmentIncludedChange(false);
 		selectedCellRef.current = null;
 		setSelectedId(null);
 		setDraft(null);
@@ -763,6 +864,10 @@ function VisualControlStructure() {
 					});
 				})()
 			: [];
+	const allowedDraftInteractionTypes =
+		draft?.kind === "connection" && graphRef.current && selectedCellRef.current?.isLink()
+			? getAllowedInteractionTypes(graphRef.current, selectedCellRef.current)
+			: defaultInteractionTypes;
 
 	return (
 		<div className={styles.editor}>
@@ -785,6 +890,21 @@ function VisualControlStructure() {
 						<AddIcon aria-hidden="true" />
 					</button>
 				))}
+				<button
+					type="button"
+					className={styles.palette_item}
+					onClick={() => addComponent(IComponentType.ENVIRONMENT)}
+					disabled={environmentIncluded}
+					title={environmentIncluded ? "Environment already included" : "Add Environment"}
+				>
+					<span
+						className={styles.palette_swatch}
+						style={{ backgroundColor: componentColors[IComponentType.ENVIRONMENT] }}
+						aria-hidden="true"
+					/>
+					<span>Environment</span>
+					<AddIcon aria-hidden="true" />
+				</button>
 				<p className={styles.palette_hint}>Drag from a component edge to create a connection.</p>
 			</aside>
 
@@ -840,7 +960,11 @@ function VisualControlStructure() {
 
 			<aside className={styles.properties} aria-label="Selected element properties">
 				<h2>Properties</h2>
-				{draft?.kind === "component" ? (
+				{draft?.kind === "component" && draft.type === IComponentType.ENVIRONMENT ? (
+					<p className={styles.properties_hint}>
+						The Environment has a fixed identity and cannot be edited.
+					</p>
+				) : draft?.kind === "component" ? (
 					<div className={styles.property_form}>
 						<label>
 							Name
@@ -1072,11 +1196,15 @@ function VisualControlStructure() {
 											)
 										}
 									>
-										{interactionTypes.map(type => (
-											<option key={type.value} value={type.value}>
-												{type.label}
-											</option>
-										))}
+										{interactionTypes
+											.filter(type =>
+												allowedDraftInteractionTypes.includes(type.value)
+											)
+											.map(type => (
+												<option key={type.value} value={type.value}>
+													{type.label}
+												</option>
+											))}
 									</select>
 								</label>
 							</div>
@@ -1095,8 +1223,7 @@ function VisualControlStructure() {
 														clientId: createClientId(),
 														code: nextInteractionCode(current.interactions),
 														name: "",
-														interactionType:
-															IInteractionType.COMMUNICATION_CHANNEL
+														interactionType: allowedDraftInteractionTypes[0]
 													}
 												]
 											}

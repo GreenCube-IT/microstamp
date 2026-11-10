@@ -23,6 +23,7 @@ function AnalysisControlStructure() {
 	const analysis: IAnalysisReadDto = useOutletContext();
 	const [mode, setMode] = useState<"forms" | "visual">("forms");
 	const [visualEditorStarted, setVisualEditorStarted] = useState(false);
+	const [environmentIncluded, setEnvironmentIncluded] = useState(false);
 	const handleModeChange = (nextMode: "forms" | "visual") => {
 		setMode(nextMode);
 		if (nextMode === "visual") setVisualEditorStarted(true);
@@ -74,7 +75,10 @@ function AnalysisControlStructure() {
 				</div>
 				{visualEditorStarted && (
 					<Suspense fallback={<p className={canvasStyles.editor_loading}>Loading visual editor…</p>}>
-						<VisualControlStructure />
+						<VisualControlStructure
+							environmentIncluded={environmentIncluded}
+							onEnvironmentIncludedChange={setEnvironmentIncluded}
+						/>
 					</Suspense>
 				)}
 			</main>
