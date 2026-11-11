@@ -17,11 +17,15 @@ public interface InteractionService {
 
     List<InteractionReadDto> findByConnectionId(UUID id);
 
+    List<InteractionReadDto> findByAnalysisId(UUID id);
+
     InteractionReadDto insert(InteractionInsertDto interactionInsertDto);
 
     void update(UUID id, InteractionUpdateDto interactionUpdateDto);
 
     void delete(UUID id);
+
+    void deleteDirectlyByIds(List<UUID> ids);
 
     void validate(Connection connection, InteractionType interactionType);
 
