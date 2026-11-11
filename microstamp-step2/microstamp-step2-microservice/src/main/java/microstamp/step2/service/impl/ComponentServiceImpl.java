@@ -99,6 +99,14 @@ public class ComponentServiceImpl implements ComponentService {
     public ComponentReadDto insert(ComponentInsertDto componentInsertDto) throws RuntimeException {
         microStampAuthClient.getAnalysisById(componentInsertDto.getAnalysisId());
 
+        return persistComponent(componentInsertDto);
+    }
+
+    public ComponentReadDto insertAfterAnalysisValidation(ComponentInsertDto componentInsertDto) throws RuntimeException {
+        return persistComponent(componentInsertDto);
+    }
+
+    private ComponentReadDto persistComponent (ComponentInsertDto componentInsertDto) throws RuntimeException {
         microstamp.step2.entity.Component father = componentInsertDto.getFatherId() != null
                 ? findComponentById(componentInsertDto.getFatherId())
                 : null;

@@ -17,6 +17,8 @@ public interface ConnectionService {
 
     ConnectionReadDto insert(ConnectionInsertDto connectionInsertDto);
 
+    ConnectionReadDto insertAfterAnalysisValidation(ConnectionInsertDto connectionInsertDto);
+
     void update(UUID id, ConnectionUpdateDto connectionUpdateDto);
 
     void delete(UUID id);

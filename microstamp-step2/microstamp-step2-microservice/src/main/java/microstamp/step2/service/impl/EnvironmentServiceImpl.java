@@ -32,14 +32,19 @@ public class EnvironmentServiceImpl implements EnvironmentService {
     }
 
     public EnvironmentReadDto findByAnalysisId(UUID id) {
-        return EnvironmentMapper.toDto(environmentRepository.findByAnalysisId(id));
+        Environment environment = environmentRepository.findByAnalysisId(id);
+
+        if (environment == null)
+            return null;
+
+        return EnvironmentMapper.toDto(environment);
     }
 
     public EnvironmentReadDto insert(UUID analysisId) {
         microStampAuthClient.getAnalysisById(analysisId);
 
         Environment environment = environmentRepository.findByAnalysisId(analysisId);
-        if(environment != null)
+        if (environment != null)
             throw new Step2UniqueEnvironmentException();
 
         environment = EnvironmentMapper.toEntity(analysisId);

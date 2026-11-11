@@ -33,4 +33,9 @@ public class ComponentUpdateDto {
     private boolean isNameEqualsEnvironment() {
         return ("Environment").equals(name);
     }
+
+    @AssertFalse(message = "Cannot create a Component with code 'Env'. Use the default Environment Component for operations involving the Environment.")
+    private boolean isCodeEqualsEnv() {
+        return ("Env").equals(code);
+    }
 }
