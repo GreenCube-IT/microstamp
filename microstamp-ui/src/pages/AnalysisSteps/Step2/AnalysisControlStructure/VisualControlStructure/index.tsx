@@ -3,20 +3,14 @@ import { IConnectionStyle } from "@interfaces/IStep2/IConnection";
 import { IInteractionType } from "@interfaces/IStep2/IInteraction/Enums";
 import * as joint from "jointjs";
 import { useEffect, useRef, useState } from "react";
-import {
-	BiPlus as AddIcon,
-	BiReset as ResetIcon,
-	BiTrash as DeleteIcon,
-	BiZoomIn as ZoomInIcon,
-	BiZoomOut as ZoomOutIcon
-} from "react-icons/bi";
+import CanvasToolbar from "./components/CanvasToolbar";
+import ComponentPalette from "./components/ComponentPalette";
+import PropertiesPanel from "./components/PropertiesPanel";
 import {
 	COMPONENT_TYPE_LABELS,
-	COMPONENT_TYPE_OPTIONS,
 	ENVIRONMENT_CODE,
 	ENVIRONMENT_NAME,
-	FIRST_INTERACTION_CODE,
-	INTERACTION_TYPE_OPTIONS
+	FIRST_INTERACTION_CODE
 } from "./domain/constants";
 import type {
 	ComponentData,
@@ -829,80 +823,21 @@ function VisualControlStructure({
 
 	return (
 		<div className={styles.editor}>
-			<aside className={styles.palette} aria-label="Add a component">
-				<h2>Components</h2>
-				{COMPONENT_TYPE_OPTIONS.map(componentType => (
-					<button
-						key={componentType.value}
-						type="button"
-						className={styles.palette_item}
-						onClick={() => addComponent(componentType.value)}
-						title={`Add ${componentType.label}`}
-					>
-						<span
-							className={styles.palette_swatch}
-							data-component-type={componentType.value}
-							aria-hidden="true"
-						/>
-						<span>{componentType.label}</span>
-						<AddIcon aria-hidden="true" />
-					</button>
-				))}
-				<button
-					type="button"
-					className={styles.palette_item}
-					onClick={() => addComponent(IComponentType.ENVIRONMENT)}
-					disabled={environmentIncluded}
-					title={environmentIncluded ? "Environment already included" : "Add Environment"}
-				>
-					<span
-						className={styles.palette_swatch}
-						data-component-type={IComponentType.ENVIRONMENT}
-						aria-hidden="true"
-					/>
-					<span>Environment</span>
-					<AddIcon aria-hidden="true" />
-				</button>
-				<p className={styles.palette_hint}>Drag from a component edge to create a connection.</p>
-			</aside>
+			<ComponentPalette
+				environmentIncluded={environmentIncluded}
+				onAddComponent={addComponent}
+			/>
 
 			<section className={styles.canvas_section} aria-label="Control structure diagram editor">
-				<div className={styles.toolbar} aria-label="Canvas controls">
-					<button type="button" onClick={resetView} title="Reset view" aria-label="Reset view">
-						<ResetIcon />
-					</button>
-					<span className={styles.separator} />
-					<button
-						type="button"
-						onClick={() => updateZoom(scaleRef.current - 0.1)}
-						title="Zoom out"
-						aria-label="Zoom out"
-					>
-						<ZoomOutIcon />
-					</button>
-					<span className={styles.zoom_value}>{zoom}%</span>
-					<button
-						type="button"
-						onClick={() => updateZoom(scaleRef.current + 0.1)}
-						title="Zoom in"
-						aria-label="Zoom in"
-					>
-						<ZoomInIcon />
-					</button>
-					<span className={styles.separator} />
-					<button
-						type="button"
-						onClick={deleteSelected}
-						disabled={!selectedId}
-						title="Delete selected element"
-						aria-label="Delete selected element"
-					>
-						<DeleteIcon />
-					</button>
-					<button type="button" onClick={clearDiagram} title="Clear diagram">
-						Clear
-					</button>
-				</div>
+				<CanvasToolbar
+					zoom={zoom}
+					hasSelection={Boolean(selectedId)}
+					onReset={resetView}
+					onZoomOut={() => updateZoom(scaleRef.current - 0.1)}
+					onZoomIn={() => updateZoom(scaleRef.current + 0.1)}
+					onDelete={deleteSelected}
+					onClear={clearDiagram}
+				/>
 				<div
 					ref={canvasRef}
 					className={styles.canvas}
@@ -916,290 +851,78 @@ function VisualControlStructure({
 				</p>
 			</section>
 
-			<aside className={styles.properties} aria-label="Selected element properties">
-				<h2>Properties</h2>
-				{draft?.kind === "component" && draft.type === IComponentType.ENVIRONMENT ? (
-					<p className={styles.properties_hint}>
-						The Environment has a fixed identity and cannot be edited.
-					</p>
-				) : draft?.kind === "component" ? (
-					<div className={styles.property_form}>
-						<label>
-							Name
-							<input
-								value={draft.name}
-								onChange={event =>
-									setDraft(current =>
-										current?.kind === "component"
-											? { ...current, name: event.target.value }
-											: current
+			<PropertiesPanel
+				draft={draft}
+				fatherOptions={fatherOptions}
+				allowedInteractionTypes={allowedDraftInteractionTypes}
+				onComponentChange={changes =>
+					setDraft(current =>
+						current?.kind === "component" ? { ...current, ...changes } : current
+					)
+				}
+				onConnectionChange={changes =>
+					setDraft(current =>
+						current?.kind === "connection" ? { ...current, ...changes } : current
+					)
+				}
+				onInteractionNameChange={(index, name) =>
+					setDraft(current =>
+						current?.kind === "connection"
+							? {
+									...current,
+									interactions: current.interactions.map((interaction, interactionIndex) =>
+										interactionIndex === index ? { ...interaction, name } : interaction
 									)
 								}
-							/>
-						</label>
-						<label>
-							Code
-							<input
-								value={draft.code}
-								onChange={event =>
-									setDraft(current =>
-										current?.kind === "component"
-											? { ...current, code: event.target.value }
-											: current
+							: current
+					)
+				}
+				onInteractionTypeChange={(index, interactionType) =>
+					setDraft(current =>
+						current?.kind === "connection"
+							? {
+									...current,
+									interactions: current.interactions.map((interaction, interactionIndex) =>
+										interactionIndex === index
+											? { ...interaction, interactionType }
+											: interaction
 									)
 								}
-							/>
-						</label>
-						<div className={styles.dimensions_fields}>
-							<label>
-								Width (px)
-								<input
-									type="number"
-									min={20}
-									step={1}
-									value={draft.width}
-									onChange={event =>
-										setDraft(current =>
-											current?.kind === "component"
-												? { ...current, width: Number(event.target.value) }
-												: current
-										)
-									}
-								/>
-							</label>
-							<label>
-								Height (px)
-								<input
-									type="number"
-									min={20}
-									step={1}
-									value={draft.height}
-									onChange={event =>
-										setDraft(current =>
-											current?.kind === "component"
-												? { ...current, height: Number(event.target.value) }
-												: current
-										)
-									}
-								/>
-							</label>
-						</div>
-						{!isValidComponentSize(draft.width, draft.height) && (
-							<p className={styles.properties_hint}>
-								Width and height must be whole numbers of at least 20 px.
-							</p>
-						)}
-						<label>
-							Type
-							<select
-								value={draft.type}
-								onChange={event =>
-									setDraft(current =>
-										current?.kind === "component"
-											? { ...current, type: event.target.value as IComponentType }
-											: current
+							: current
+					)
+				}
+				onInteractionRemove={index =>
+					setDraft(current =>
+						current?.kind === "connection"
+							? {
+									...current,
+									interactions: current.interactions.filter(
+										(_, interactionIndex) => interactionIndex !== index
 									)
 								}
-							>
-								{COMPONENT_TYPE_OPTIONS.map(type => (
-									<option key={type.value} value={type.value}>
-										{type.label}
-									</option>
-								))}
-							</select>
-						</label>
-						<label>
-							Father (optional)
-							<select
-								value={draft.fatherClientId ?? ""}
-								onChange={event =>
-									setDraft(current =>
-										current?.kind === "component"
-											? { ...current, fatherClientId: event.target.value || null }
-											: current
-									)
-								}
-							>
-								<option value="">None</option>
-								{fatherOptions.map(component => (
-									<option key={component.clientId} value={component.clientId}>
-										{component.name} ({component.code})
-									</option>
-								))}
-							</select>
-						</label>
-						<label>
-							Border
-							<select
-								value={draft.border}
-								onChange={event =>
-									setDraft(current =>
-										current?.kind === "component"
-											? { ...current, border: event.target.value as IComponentBorder }
-											: current
-									)
-								}
-							>
-								<option value={IComponentBorder.SOLID}>Solid</option>
-								<option value={IComponentBorder.DASHED}>Dashed</option>
-								<option value={IComponentBorder.ETCHED}>Etched</option>
-							</select>
-						</label>
-						<button
-							type="button"
-							className={styles.apply_button}
-							onClick={applyDraft}
-							disabled={!isValidComponentSize(draft.width, draft.height)}
-						>
-							Apply
-						</button>
-					</div>
-				) : draft?.kind === "connection" ? (
-					<div className={styles.property_form}>
-						<label>
-							Connection code
-							<input
-								value={draft.code}
-								onChange={event =>
-									setDraft(current =>
-										current?.kind === "connection"
-											? { ...current, code: event.target.value }
-											: current
-									)
-								}
-							/>
-						</label>
-						<label>
-							Style
-							<select
-								value={draft.style}
-								onChange={event =>
-									setDraft(current =>
-										current?.kind === "connection"
-											? { ...current, style: event.target.value as IConnectionStyle }
-											: current
-									)
-								}
-							>
-								<option value={IConnectionStyle.SOLID}>Solid</option>
-								<option value={IConnectionStyle.DASHED}>Dashed</option>
-								<option value={IConnectionStyle.ETCHED}>Etched</option>
-							</select>
-						</label>
-						<div className={styles.section_label}>Interactions</div>
-						{draft.interactions.map((interaction, index) => (
-							<div key={interaction.clientId} className={styles.interaction}>
-								<div className={styles.interaction_header}>
-									<strong>{interaction.code}</strong>
-									<button
-										type="button"
-										className={styles.remove_interaction}
-										onClick={() =>
-											setDraft(current =>
-												current?.kind === "connection"
-													? {
-															...current,
-															interactions: current.interactions.filter(
-																(_, interactionIndex) => interactionIndex !== index
-															)
-														}
-													: current
-											)
+							: current
+					)
+				}
+				onInteractionAdd={() =>
+					setDraft(current =>
+						current?.kind === "connection"
+							? {
+									...current,
+									interactions: [
+										...current.interactions,
+										{
+											clientId: createClientId(),
+											code: getNextInteractionCode(current.interactions),
+											name: "",
+											interactionType: allowedDraftInteractionTypes[0]
 										}
-										aria-label={`Remove interaction ${interaction.code}`}
-									>
-										<DeleteIcon />
-									</button>
-								</div>
-								<label>
-									Name
-									<input
-										value={interaction.name}
-										onChange={event =>
-											setDraft(current =>
-												current?.kind === "connection"
-													? {
-															...current,
-															interactions: current.interactions.map((item, itemIndex) =>
-																itemIndex === index
-																	? { ...item, name: event.target.value }
-																	: item
-															)
-														}
-													: current
-											)
-										}
-									/>
-								</label>
-								<label>
-									Type
-									<select
-										value={interaction.interactionType}
-										onChange={event =>
-											setDraft(current =>
-												current?.kind === "connection"
-													? {
-															...current,
-															interactions: current.interactions.map((item, itemIndex) =>
-																itemIndex === index
-																	? {
-																			...item,
-																			interactionType: event.target
-																				.value as IInteractionType
-																		}
-																	: item
-															)
-														}
-													: current
-											)
-										}
-									>
-										{INTERACTION_TYPE_OPTIONS
-											.filter(type =>
-												allowedDraftInteractionTypes.includes(type.value)
-											)
-											.map(type => (
-												<option key={type.value} value={type.value}>
-													{type.label}
-												</option>
-											))}
-									</select>
-								</label>
-							</div>
-						))}
-						<button
-							type="button"
-							className={styles.add_interaction}
-							onClick={() =>
-								setDraft(current =>
-									current?.kind === "connection"
-										? {
-												...current,
-												interactions: [
-													...current.interactions,
-													{
-														clientId: createClientId(),
-														code: getNextInteractionCode(current.interactions),
-														name: "",
-														interactionType: allowedDraftInteractionTypes[0]
-													}
-												]
-											}
-										: current
-								)
-							}
-						>
-							<AddIcon />
-							Add interaction
-						</button>
-						<button type="button" className={styles.apply_button} onClick={applyDraft}>
-							Apply
-						</button>
-					</div>
-				) : (
-					<p className={styles.properties_hint}>Select a component or connection to edit it.</p>
-				)}
-			</aside>
+									]
+								}
+							: current
+					)
+				}
+				onApply={applyDraft}
+			/>
 		</div>
 	);
 }
