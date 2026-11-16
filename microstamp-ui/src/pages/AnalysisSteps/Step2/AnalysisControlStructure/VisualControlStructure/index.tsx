@@ -10,99 +10,45 @@ import {
 	BiZoomIn as ZoomInIcon,
 	BiZoomOut as ZoomOutIcon
 } from "react-icons/bi";
+import {
+	COMPONENT_TYPE_LABELS,
+	COMPONENT_TYPE_OPTIONS,
+	DEFAULT_INTERACTION_TYPES,
+	ENVIRONMENT_CODE,
+	ENVIRONMENT_NAME,
+	FIRST_INTERACTION_CODE,
+	INTERACTION_TYPE_OPTIONS,
+	SOURCE_ENVIRONMENT_INTERACTION_TYPES,
+	TARGET_ENVIRONMENT_INTERACTION_TYPES
+} from "./domain/constants";
+import type {
+	ComponentData,
+	ConnectionData,
+	DiagramData,
+	InteractionData,
+	PropertiesDraft
+} from "./domain/types";
+import {
+	ACTIVE_ANCHOR_COLOR,
+	ANCHOR_HANDLE_STROKE_COLOR,
+	CANVAS_BACKGROUND_COLOR,
+	CANVAS_GRID_COLOR,
+	COMPONENT_COLORS,
+	CONNECTION_COLOR,
+	CONNECTION_LABEL_BACKGROUND_COLOR,
+	CONNECTION_LABEL_BORDER_COLOR,
+	CONNECTION_LABEL_TEXT_COLOR,
+	DEFAULT_ANCHOR_COLOR,
+	DEFAULT_COMPONENT_SIZE,
+	SELECTION_HIGHLIGHT_COLOR
+} from "./canvas/visualConstants";
 import styles from "./VisualControlStructure.module.css";
 import "jointjs/dist/joint.min.css";
-
-interface ComponentData {
-	kind: "component";
-	component: {
-		backendId?: string;
-		clientId: string;
-		name: string;
-		code: string;
-		type: IComponentType;
-		border: IComponentBorder;
-		fatherClientId: string | null;
-		isVisible: boolean;
-		width: number;
-		height: number;
-	};
-}
-
-interface ConnectionData {
-	kind: "connection";
-	connection: {
-		backendId?: string;
-		clientId: string;
-		code: string;
-		style: IConnectionStyle;
-		interactions: InteractionData[];
-	};
-}
-
-interface InteractionData {
-	backendId?: string;
-	clientId: string;
-	code: string;
-	name: string;
-	interactionType: IInteractionType;
-}
-
-type DiagramData = ComponentData | ConnectionData;
-type ComponentDraft = ComponentData["component"] & { kind: "component" };
-type ConnectionDraft = Omit<ConnectionData["connection"], "interactions"> & {
-	kind: "connection";
-	interactions: InteractionData[];
-};
-type PropertiesDraft = ComponentDraft | ConnectionDraft;
 
 interface VisualControlStructureProps {
 	environmentIncluded: boolean;
 	onEnvironmentIncludedChange: (included: boolean) => void;
 }
-
-const componentTypes: { value: IComponentType; label: string }[] = [
-	{ value: IComponentType.CONTROLLER, label: "Controller" },
-	{ value: IComponentType.CONTROLLED_PROCESS, label: "Controlled process" },
-	{ value: IComponentType.ACTUATOR, label: "Actuator" },
-	{ value: IComponentType.SENSOR, label: "Sensor" }
-];
-
-const interactionTypes: { value: IInteractionType; label: string }[] = [
-	{ value: IInteractionType.CONTROL_ACTION, label: "Control action" },
-	{ value: IInteractionType.FEEDBACK, label: "Feedback" },
-	{ value: IInteractionType.COMMUNICATION_CHANNEL, label: "Communication channel" },
-	{ value: IInteractionType.PROCESS_INPUT, label: "Process input" },
-	{ value: IInteractionType.PROCESS_OUTPUT, label: "Process output" },
-	{ value: IInteractionType.DISTURBANCE, label: "Disturbance" }
-];
-
-const defaultInteractionTypes = [
-	IInteractionType.CONTROL_ACTION,
-	IInteractionType.FEEDBACK,
-	IInteractionType.COMMUNICATION_CHANNEL
-];
-const sourceEnvironmentInteractionTypes = [
-	IInteractionType.PROCESS_INPUT,
-	IInteractionType.DISTURBANCE
-];
-const targetEnvironmentInteractionTypes = [IInteractionType.PROCESS_OUTPUT];
-
-const componentTypeLabels: Record<IComponentType, string> = {
-	[IComponentType.CONTROLLER]: "Controller",
-	[IComponentType.CONTROLLED_PROCESS]: "Controlled process",
-	[IComponentType.ACTUATOR]: "Actuator",
-	[IComponentType.SENSOR]: "Sensor",
-	[IComponentType.ENVIRONMENT]: "Environment"
-};
-
-const componentColors: Record<IComponentType, string> = {
-	[IComponentType.CONTROLLER]: "#dbeafe",
-	[IComponentType.CONTROLLED_PROCESS]: "#dcfce7",
-	[IComponentType.ACTUATOR]: "#fef3c7",
-	[IComponentType.SENSOR]: "#fce7f3",
-	[IComponentType.ENVIRONMENT]: "#e2e8f0"
-};
 
 type AnchorSide = "top" | "bottom" | "left" | "right";
 
@@ -188,12 +134,12 @@ function getEndpointComponentType(
 
 function getAllowedInteractionTypes(graph: joint.dia.Graph, link: joint.dia.Cell) {
 	if (getEndpointComponentType(graph, link, "source") === IComponentType.ENVIRONMENT) {
-		return sourceEnvironmentInteractionTypes;
+		return SOURCE_ENVIRONMENT_INTERACTION_TYPES;
 	}
 	if (getEndpointComponentType(graph, link, "target") === IComponentType.ENVIRONMENT) {
-		return targetEnvironmentInteractionTypes;
+		return TARGET_ENVIRONMENT_INTERACTION_TYPES;
 	}
-	return defaultInteractionTypes;
+	return DEFAULT_INTERACTION_TYPES;
 }
 
 function normalizeConnectionInteractions(graph: joint.dia.Graph, link: joint.dia.Link) {
@@ -315,11 +261,11 @@ function setConnectionLabels(link: joint.dia.Link, interactions: InteractionData
 						"data-interaction-code": interaction.code,
 						fontSize: 11,
 						fontFamily: "sans-serif",
-						fill: "#1e293b"
+						fill: CONNECTION_LABEL_TEXT_COLOR
 					},
 					rect: {
-						fill: "#ffffff",
-						stroke: "#cbd5e1",
+						fill: CONNECTION_LABEL_BACKGROUND_COLOR,
+						stroke: CONNECTION_LABEL_BORDER_COLOR,
 						strokeWidth: 1,
 						rx: 3,
 						ry: 3
@@ -379,8 +325,8 @@ function VisualControlStructure({
 			width: canvas.clientWidth,
 			height: canvas.clientHeight,
 			gridSize: 10,
-			drawGrid: { name: "dot", args: { color: "#c8cdd8", gap: 10 } },
-			background: { color: "#f5f5f5" },
+			drawGrid: { name: "dot", args: { color: CANVAS_GRID_COLOR, gap: 10 } },
+			background: { color: CANVAS_BACKGROUND_COLOR },
 			defaultConnectionPoint: { name: "boundary", args: { perpendicular: false } },
 			defaultAnchor: { name: "center" },
 			linkPinning: false,
@@ -394,7 +340,7 @@ function VisualControlStructure({
 				const interactions: InteractionData[] = [
 					{
 						clientId: createClientId(),
-						code: "In.01",
+						code: FIRST_INTERACTION_CODE,
 						name: "",
 						interactionType: IInteractionType.COMMUNICATION_CHANNEL
 					}
@@ -412,12 +358,12 @@ function VisualControlStructure({
 					},
 					attrs: {
 						line: {
-							stroke: "#1e293b",
+							stroke: CONNECTION_COLOR,
 							strokeWidth: 1.5,
 							targetMarker: {
 								type: "path",
 								d: "M 8 -4 0 0 8 4 z",
-								fill: "#1e293b",
+								fill: CONNECTION_COLOR,
 								stroke: "none"
 							},
 							sourceMarker: { type: "none" }
@@ -474,7 +420,7 @@ function VisualControlStructure({
 					name: "stroke",
 					options: {
 						padding: 4,
-						attrs: { stroke: "#d4a056", "stroke-width": 2 }
+						attrs: { stroke: SELECTION_HIGHLIGHT_COLOR, "stroke-width": 2 }
 					}
 				}
 			});
@@ -512,15 +458,15 @@ function VisualControlStructure({
 				},
 				customAnchorAttributes: {
 					r: 6,
-					fill: "#3b82f6",
-					stroke: "#ffffff",
+					fill: ACTIVE_ANCHOR_COLOR,
+					stroke: ANCHOR_HANDLE_STROKE_COLOR,
 					"stroke-width": 2,
 					cursor: "grab"
 				},
 				defaultAnchorAttributes: {
 					r: 6,
-					fill: "#64748b",
-					stroke: "#ffffff",
+					fill: DEFAULT_ANCHOR_COLOR,
+					stroke: ANCHOR_HANDLE_STROKE_COLOR,
 					"stroke-width": 2,
 					cursor: "grab"
 				},
@@ -661,11 +607,11 @@ function VisualControlStructure({
 			return;
 		}
 
-		const code = isEnvironment ? "Env" : nextCode(graph, "C");
+		const code = isEnvironment ? ENVIRONMENT_CODE : nextCode(graph, "C");
 		const name = isEnvironment
-			? "Environment"
-			: `${componentTypeLabels[type]} ${code.split(".")[1]}`;
-		const size = { width: 190, height: 76 };
+			? ENVIRONMENT_NAME
+			: `${COMPONENT_TYPE_LABELS[type]} ${code.split(".")[1]}`;
+		const size = DEFAULT_COMPONENT_SIZE;
 		const translation = paper.translate();
 		const scale = paper.scale().sx;
 		const centerX = (canvas.clientWidth / 2 - translation.tx) / scale;
@@ -695,8 +641,8 @@ function VisualControlStructure({
 			},
 			attrs: {
 				body: {
-					fill: componentColors[type],
-					stroke: "#1e293b",
+					fill: COMPONENT_COLORS[type],
+					stroke: CONNECTION_COLOR,
 					strokeWidth: 1.5,
 					rx: 4,
 					ry: 4,
@@ -707,7 +653,7 @@ function VisualControlStructure({
 					fontSize: 13,
 					fontFamily: "sans-serif",
 					fontWeight: "500",
-					fill: "#1e293b",
+					fill: CONNECTION_COLOR,
 					textWrap: { width: -16, height: -10, ellipsis: true }
 				}
 			}
@@ -720,7 +666,7 @@ function VisualControlStructure({
 				name: "stroke",
 				options: {
 					padding: 4,
-					attrs: { stroke: "#d4a056", "stroke-width": 2 }
+					attrs: { stroke: SELECTION_HIGHLIGHT_COLOR, "stroke-width": 2 }
 				}
 			}
 		});
@@ -779,7 +725,7 @@ function VisualControlStructure({
 			cell.resize(draft.width, draft.height);
 			cell.attr({
 				body: {
-					fill: componentColors[draft.type],
+					fill: COMPONENT_COLORS[draft.type],
 					strokeDasharray:
 						draft.border === IComponentBorder.SOLID
 							? "none"
@@ -867,13 +813,13 @@ function VisualControlStructure({
 	const allowedDraftInteractionTypes =
 		draft?.kind === "connection" && graphRef.current && selectedCellRef.current?.isLink()
 			? getAllowedInteractionTypes(graphRef.current, selectedCellRef.current)
-			: defaultInteractionTypes;
+			: DEFAULT_INTERACTION_TYPES;
 
 	return (
 		<div className={styles.editor}>
 			<aside className={styles.palette} aria-label="Add a component">
 				<h2>Components</h2>
-				{componentTypes.map(componentType => (
+				{COMPONENT_TYPE_OPTIONS.map(componentType => (
 					<button
 						key={componentType.value}
 						type="button"
@@ -883,7 +829,7 @@ function VisualControlStructure({
 					>
 						<span
 							className={styles.palette_swatch}
-							style={{ backgroundColor: componentColors[componentType.value] }}
+							data-component-type={componentType.value}
 							aria-hidden="true"
 						/>
 						<span>{componentType.label}</span>
@@ -899,7 +845,7 @@ function VisualControlStructure({
 				>
 					<span
 						className={styles.palette_swatch}
-						style={{ backgroundColor: componentColors[IComponentType.ENVIRONMENT] }}
+						data-component-type={IComponentType.ENVIRONMENT}
 						aria-hidden="true"
 					/>
 					<span>Environment</span>
@@ -1043,7 +989,7 @@ function VisualControlStructure({
 									)
 								}
 							>
-								{componentTypes.map(type => (
+								{COMPONENT_TYPE_OPTIONS.map(type => (
 									<option key={type.value} value={type.value}>
 										{type.label}
 									</option>
@@ -1196,7 +1142,7 @@ function VisualControlStructure({
 											)
 										}
 									>
-										{interactionTypes
+										{INTERACTION_TYPE_OPTIONS
 											.filter(type =>
 												allowedDraftInteractionTypes.includes(type.value)
 											)
