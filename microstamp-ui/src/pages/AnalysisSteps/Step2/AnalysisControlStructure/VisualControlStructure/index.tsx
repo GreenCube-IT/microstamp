@@ -7,6 +7,23 @@ import CanvasToolbar from "./components/CanvasToolbar";
 import ComponentPalette from "./components/ComponentPalette";
 import PropertiesPanel from "./components/PropertiesPanel";
 import {
+	createConnectionCell,
+	createDiagramCell,
+	extractDiagramSnapshot,
+	getAllowedInteractionTypesForConnection,
+	getDiagramData,
+	getEndpointComponentClientId,
+	normalizeConnectionInteractions,
+	updateDiagramCell
+} from "./canvas/diagramData";
+import {
+	createAnchorToolsView,
+	highlightCell,
+	getSideRatioAnchor,
+	setSideRatioAnchor,
+	unhighlightCell
+} from "./canvas/shapes";
+import {
 	COMPONENT_TYPE_LABELS,
 	ENVIRONMENT_CODE,
 	ENVIRONMENT_NAME,
@@ -15,35 +32,24 @@ import {
 import type {
 	ComponentData,
 	ConnectionData,
-	DiagramData,
 	InteractionData,
 	PropertiesDraft
 } from "./domain/types";
 import {
-	ACTIVE_ANCHOR_COLOR,
-	ANCHOR_HANDLE_STROKE_COLOR,
 	CANVAS_BACKGROUND_COLOR,
 	CANVAS_GRID_COLOR,
-	COMPONENT_COLORS,
-	CONNECTION_COLOR,
-	CONNECTION_LABEL_BACKGROUND_COLOR,
-	CONNECTION_LABEL_BORDER_COLOR,
-	CONNECTION_LABEL_TEXT_COLOR,
-	DEFAULT_ANCHOR_COLOR,
-	DEFAULT_COMPONENT_SIZE,
-	SELECTION_HIGHLIGHT_COLOR
+	DEFAULT_COMPONENT_SIZE
 } from "./canvas/visualConstants";
 import {
 	DEFAULT_INTERACTION_TYPES,
-	getAllowedInteractionTypes as getDomainAllowedInteractionTypes,
 	getCascadeDeletionPlan,
 	getComponentDescendantIds as getDomainComponentDescendantIds,
 	getNextCode,
 	getNextInteractionCode,
-	isValidComponentSize,
-	normalizeInteractions
+	isValidComponentSize
 } from "./domain/rules";
 import type { ConnectionEndpoints, HierarchyComponent } from "./domain/rules";
+import type { SideRatioAnchor } from "./canvas/shapes";
 import styles from "./VisualControlStructure.module.css";
 import "jointjs/dist/joint.min.css";
 
@@ -52,105 +58,9 @@ interface VisualControlStructureProps {
 	onEnvironmentIncludedChange: (included: boolean) => void;
 }
 
-type AnchorSide = "top" | "bottom" | "left" | "right";
-
-interface SideRatioAnchor {
-	side: AnchorSide;
-	ratio: number;
-}
-
-function clamp(value: number) {
-	return Math.max(0, Math.min(1, value));
-}
-
-function sideRatioToPoint(
-	bbox: { x: number; y: number; width: number; height: number },
-	{ side, ratio }: SideRatioAnchor
-) {
-	const relativePosition = clamp(ratio);
-	switch (side) {
-		case "top":
-			return { x: bbox.x + bbox.width * relativePosition, y: bbox.y };
-		case "bottom":
-			return { x: bbox.x + bbox.width * relativePosition, y: bbox.y + bbox.height };
-		case "left":
-			return { x: bbox.x, y: bbox.y + bbox.height * relativePosition };
-		case "right":
-			return { x: bbox.x + bbox.width, y: bbox.y + bbox.height * relativePosition };
-	}
-}
-
-function pointToSideRatio(
-	bbox: { x: number; y: number; width: number; height: number },
-	point: { x: number; y: number }
-): SideRatioAnchor {
-	const distances = {
-		top: Math.abs(point.y - bbox.y),
-		bottom: Math.abs(point.y - (bbox.y + bbox.height)),
-		left: Math.abs(point.x - bbox.x),
-		right: Math.abs(point.x - (bbox.x + bbox.width))
-	};
-	const side = (Object.keys(distances) as AnchorSide[]).reduce((nearest, current) =>
-		distances[current] < distances[nearest] ? current : nearest
-	);
-	const ratio =
-		side === "top" || side === "bottom"
-			? (point.x - bbox.x) / bbox.width
-			: (point.y - bbox.y) / bbox.height;
-	return { side, ratio: clamp(ratio) };
-}
-
-function getDiagramData(cell: joint.dia.Cell): DiagramData | null {
-	const data: unknown = cell.get("data");
-	if (!data || typeof data !== "object" || !("kind" in data)) return null;
-	const diagramData = data as DiagramData;
-	return diagramData.kind === "component" || diagramData.kind === "connection"
-		? diagramData
-		: null;
-}
-
-function getEndpointComponentType(
-	graph: joint.dia.Graph,
-	link: joint.dia.Cell,
-	end: "source" | "target"
-) {
-	const endpoint: unknown = link.get(end);
-	if (!endpoint || typeof endpoint !== "object" || !("id" in endpoint)) return null;
-
-	const endpointId = endpoint.id;
-	if (typeof endpointId !== "string" && typeof endpointId !== "number") return null;
-
-	const cell = graph.getCell(String(endpointId));
-	const data = cell ? getDiagramData(cell) : null;
-	return data?.kind === "component" ? data.component.type : null;
-}
-
-function getAllowedInteractionTypes(graph: joint.dia.Graph, link: joint.dia.Cell) {
-	return getDomainAllowedInteractionTypes(
-		getEndpointComponentType(graph, link, "source"),
-		getEndpointComponentType(graph, link, "target")
-	);
-}
-
-function normalizeConnectionInteractions(graph: joint.dia.Graph, link: joint.dia.Link) {
-	const data = getDiagramData(link);
-	if (data?.kind !== "connection") return;
-
-	const interactions = normalizeInteractions(
-		data.connection.interactions,
-		getAllowedInteractionTypes(graph, link)
-	);
-	const nextData: ConnectionData = {
-		kind: "connection",
-		connection: { ...data.connection, interactions }
-	};
-	link.set("data", nextData);
-	setConnectionLabels(link, interactions);
-}
-
 function getComponentDescendantIds(graph: joint.dia.Graph, componentClientId: string) {
 	const components: HierarchyComponent[] = graph.getCells().flatMap(cell => {
-		const data = getDiagramData(cell);
+		const data = extractDiagramSnapshot(cell)?.data;
 		return data?.kind === "component"
 			? [
 					{
@@ -162,22 +72,6 @@ function getComponentDescendantIds(graph: joint.dia.Graph, componentClientId: st
 			: [];
 	});
 	return getDomainComponentDescendantIds(components, componentClientId);
-}
-
-function getEndpointComponentClientId(
-	graph: joint.dia.Graph,
-	cell: joint.dia.Cell,
-	end: "source" | "target"
-) {
-	const endpoint: unknown = cell.get(end);
-	if (!endpoint || typeof endpoint !== "object" || !("id" in endpoint)) return null;
-
-	const endpointId = endpoint.id;
-	if (typeof endpointId !== "string" && typeof endpointId !== "number") return null;
-
-	const endpointCell = graph.getCell(String(endpointId));
-	const data = endpointCell ? getDiagramData(endpointCell) : null;
-	return data?.kind === "component" ? data.component.clientId : null;
 }
 
 function removeDiagramCell(graph: joint.dia.Graph, cell: joint.dia.Cell): boolean {
@@ -245,47 +139,6 @@ function createClientId() {
 	return crypto.randomUUID();
 }
 
-function setConnectionLabels(link: joint.dia.Link, interactions: InteractionData[]) {
-	const existingPositions = new Map<string, joint.dia.Link.Label["position"]>();
-	link.labels().forEach(label => {
-		const clientId = label.attrs?.text?.["data-interaction-client-id"];
-		if (typeof clientId === "string" && label.position !== undefined) {
-			existingPositions.set(clientId, label.position);
-		}
-	});
-
-	link.labels(
-		interactions.map((interaction, index) => {
-			const labelCount = interactions.length;
-			const distance = (index + 1) / (labelCount + 1);
-			const label = interaction.name.trim() || interaction.code;
-			return {
-				attrs: {
-					text: {
-						text: label,
-						"data-interaction-client-id": interaction.clientId,
-						"data-interaction-code": interaction.code,
-						fontSize: 11,
-						fontFamily: "sans-serif",
-						fill: CONNECTION_LABEL_TEXT_COLOR
-					},
-					rect: {
-						fill: CONNECTION_LABEL_BACKGROUND_COLOR,
-						stroke: CONNECTION_LABEL_BORDER_COLOR,
-						strokeWidth: 1,
-						rx: 3,
-						ry: 3
-					}
-				},
-				position: existingPositions.get(interaction.clientId) ?? {
-					distance,
-					offset: { x: 0, y: index % 2 === 0 ? -12 : 12 }
-				}
-			};
-		})
-	);
-}
-
 function VisualControlStructure({
 	environmentIncluded,
 	onEnvironmentIncludedChange
@@ -315,14 +168,10 @@ function VisualControlStructure({
 		Object.assign(joint.anchors, {
 			sideRatio: (
 				endView: joint.dia.CellView,
-				_magnet: SVGElement,
-				_reference: joint.g.Point | SVGElement,
+				magnet: SVGElement,
+				reference: joint.g.Point | SVGElement,
 				args: SideRatioAnchor
-			) => {
-				const bbox = endView.model.getBBox();
-				const point = sideRatioToPoint(bbox, args);
-				return new joint.g.Point(point.x, point.y);
-			}
+			) => getSideRatioAnchor(endView, magnet, reference, args)
 		});
 
 		const paper = new joint.dia.Paper({
@@ -351,33 +200,16 @@ function VisualControlStructure({
 						interactionType: IInteractionType.COMMUNICATION_CHANNEL
 					}
 				];
-				const link = new joint.shapes.standard.Link({
-					z: 2,
-					data: {
-						kind: "connection",
-						connection: {
-							clientId: createClientId(),
-							code: nextCode(graph, "Cn"),
-							style: IConnectionStyle.SOLID,
-							interactions
-						}
-					},
-					attrs: {
-						line: {
-							stroke: CONNECTION_COLOR,
-							strokeWidth: 1.5,
-							targetMarker: {
-								type: "path",
-								d: "M 8 -4 0 0 8 4 z",
-								fill: CONNECTION_COLOR,
-								stroke: "none"
-							},
-							sourceMarker: { type: "none" }
-						}
+				const data: ConnectionData = {
+					kind: "connection",
+					connection: {
+						clientId: createClientId(),
+						code: nextCode(graph, "Cn"),
+						style: IConnectionStyle.SOLID,
+						interactions
 					}
-				});
-				setConnectionLabels(link, interactions);
-				return link;
+				};
+				return createConnectionCell(data.connection);
 			},
 			cellViewNamespace: joint.shapes,
 			interactive: cellView =>
@@ -388,7 +220,7 @@ function VisualControlStructure({
 		const deselect = () => {
 			const current = selectedCellRef.current;
 			if (current) {
-				paper.findViewByModel(current)?.unhighlight();
+				unhighlightCell(paper.findViewByModel(current));
 				if (current.isLink()) paper.findViewByModel(current)?.removeTools();
 			}
 			selectedCellRef.current = null;
@@ -399,7 +231,7 @@ function VisualControlStructure({
 		const selectCell = (cell: joint.dia.Cell) => {
 			const previous = selectedCellRef.current;
 			if (previous) {
-				paper.findViewByModel(previous)?.unhighlight();
+				unhighlightCell(paper.findViewByModel(previous));
 				if (previous.isLink()) paper.findViewByModel(previous)?.removeTools();
 			}
 
@@ -421,79 +253,15 @@ function VisualControlStructure({
 			} else {
 				setDraft(null);
 			}
-			paper.findViewByModel(cell)?.highlight(undefined, {
-				highlighter: {
-					name: "stroke",
-					options: {
-						padding: 4,
-						attrs: { stroke: SELECTION_HIGHLIGHT_COLOR, "stroke-width": 2 }
-					}
-				}
-			});
+			highlightCell(paper.findViewByModel(cell));
 			if (cell.isLink()) addAnchorTools(cell);
-		};
-
-		const setSideRatioAnchor = (linkView: joint.dia.LinkView, end: joint.dia.LinkEnd) => {
-			const endView = linkView.getEndView(end);
-			if (!endView || !endView.model.isElement()) return;
-
-			const bbox = endView.model.getBBox();
-			const point = linkView.getEndAnchor(end);
-			const anchor = pointToSideRatio(bbox, point);
-			linkView.model.prop(`${end}/anchor`, {
-				name: "sideRatio",
-				args: anchor
-			});
-		};
-
-		const createAnchorTool = (end: joint.dia.LinkEnd) => {
-			const options = {
-				snap: (point: joint.dia.Point, view: joint.dia.CellView) => {
-					const model = view.model;
-					if (!model.isElement()) return point;
-					return sideRatioToPoint(model.getBBox(), pointToSideRatio(model.getBBox(), point));
-				},
-				anchor: (point: joint.dia.Point, view: joint.dia.CellView) => {
-					const model = view.model;
-					return {
-						name: "sideRatio",
-						args: model.isElement()
-							? pointToSideRatio(model.getBBox(), point)
-							: { side: "top", ratio: 0.5 }
-					};
-				},
-				customAnchorAttributes: {
-					r: 6,
-					fill: ACTIVE_ANCHOR_COLOR,
-					stroke: ANCHOR_HANDLE_STROKE_COLOR,
-					"stroke-width": 2,
-					cursor: "grab"
-				},
-				defaultAnchorAttributes: {
-					r: 6,
-					fill: DEFAULT_ANCHOR_COLOR,
-					stroke: ANCHOR_HANDLE_STROKE_COLOR,
-					"stroke-width": 2,
-					cursor: "grab"
-				},
-				resetAnchor: false,
-				restrictArea: false,
-				scale: 1
-			};
-			return end === "source"
-				? new joint.linkTools.SourceAnchor(options)
-				: new joint.linkTools.TargetAnchor(options);
 		};
 
 		const addAnchorTools = (link: joint.dia.Link) => {
 			const linkView = paper.findViewByModel(link);
 			if (!linkView) return;
 			linkView.removeTools();
-			linkView.addTools(
-				new joint.dia.ToolsView({
-					tools: [createAnchorTool("source"), createAnchorTool("target")]
-				})
-			);
+			linkView.addTools(createAnchorToolsView());
 		};
 
 		paper.on("blank:pointerdown", deselect);
@@ -623,65 +391,34 @@ function VisualControlStructure({
 		const centerX = (canvas.clientWidth / 2 - translation.tx) / scale;
 		const centerY = (canvas.clientHeight / 2 - translation.ty) / scale;
 		const offset = graph.getCells().filter(cell => cell.isElement()).length * 22;
-
-		const component = new joint.shapes.standard.Rectangle({
-			position: {
-				x: centerX - size.width / 2 + offset,
-				y: centerY - size.height / 2 + offset
-			},
-			size,
-			z: 1,
-			data: {
-				kind: "component",
-				component: {
-					clientId: createClientId(),
-					name,
-					code,
-					type,
-					border: IComponentBorder.SOLID,
-					fatherClientId: null,
-					isVisible: true,
-					width: size.width,
-					height: size.height
-				}
-			},
-			attrs: {
-				body: {
-					fill: COMPONENT_COLORS[type],
-					stroke: CONNECTION_COLOR,
-					strokeWidth: 1.5,
-					rx: 4,
-					ry: 4,
-					magnet: true
-				},
-				label: {
-					text: name,
-					fontSize: 13,
-					fontFamily: "sans-serif",
-					fontWeight: "500",
-					fill: CONNECTION_COLOR,
-					textWrap: { width: -16, height: -10, ellipsis: true }
-				}
+		const componentData: ComponentData = {
+			kind: "component",
+			component: {
+				clientId: createClientId(),
+				name,
+				code,
+				type,
+				border: IComponentBorder.SOLID,
+				fatherClientId: null,
+				isVisible: true,
+				width: size.width,
+				height: size.height
 			}
+		};
+		const component = createDiagramCell(componentData, {
+			x: centerX - size.width / 2 + offset,
+			y: centerY - size.height / 2 + offset
 		});
 		graph.addCell(component);
 		if (isEnvironment) onEnvironmentIncludedChange(true);
 		selectCellById(component);
-		paper.findViewByModel(component)?.highlight(undefined, {
-			highlighter: {
-				name: "stroke",
-				options: {
-					padding: 4,
-					attrs: { stroke: SELECTION_HIGHLIGHT_COLOR, "stroke-width": 2 }
-				}
-			}
-		});
+		highlightCell(paper.findViewByModel(component));
 	};
 
 	const selectCellById = (cell: joint.dia.Cell) => {
 		const previous = selectedCellRef.current;
 		if (previous) {
-			paperRef.current?.findViewByModel(previous)?.unhighlight();
+			unhighlightCell(paperRef.current?.findViewByModel(previous));
 			if (previous.isLink()) paperRef.current?.findViewByModel(previous)?.removeTools();
 		}
 		if (cell.isLink() && graphRef.current) {
@@ -689,7 +426,7 @@ function VisualControlStructure({
 		}
 		selectedCellRef.current = cell;
 		setSelectedId(cell.id.toString());
-		const data = getDiagramData(cell);
+		const data = extractDiagramSnapshot(cell)?.data;
 		if (data?.kind === "component") {
 			setDraft({ kind: "component", ...data.component });
 		} else if (data?.kind === "connection") {
@@ -727,20 +464,7 @@ function VisualControlStructure({
 					height: draft.height
 				}
 			};
-			cell.set("data", nextData);
-			cell.resize(draft.width, draft.height);
-			cell.attr({
-				body: {
-					fill: COMPONENT_COLORS[draft.type],
-					strokeDasharray:
-						draft.border === IComponentBorder.SOLID
-							? "none"
-							: draft.border === IComponentBorder.DASHED
-								? "8 4"
-								: "2 2"
-				},
-				label: { text: draft.name }
-			});
+			updateDiagramCell(cell, nextData);
 		} else if (draft.kind === "connection" && cell.isLink()) {
 			const nextData: ConnectionData = {
 				kind: "connection",
@@ -752,16 +476,7 @@ function VisualControlStructure({
 					interactions: draft.interactions.map(interaction => ({ ...interaction }))
 				}
 			};
-			cell.set("data", nextData);
-			cell.attr(
-				"line/strokeDasharray",
-				draft.style === IConnectionStyle.SOLID
-					? "none"
-					: draft.style === IConnectionStyle.DASHED
-						? "8 4"
-						: "2 2"
-			);
-			setConnectionLabels(cell, draft.interactions);
+			updateDiagramCell(cell, nextData);
 		}
 	};
 
@@ -818,7 +533,7 @@ function VisualControlStructure({
 			: [];
 	const allowedDraftInteractionTypes =
 		draft?.kind === "connection" && graphRef.current && selectedCellRef.current?.isLink()
-			? getAllowedInteractionTypes(graphRef.current, selectedCellRef.current)
+			? getAllowedInteractionTypesForConnection(graphRef.current, selectedCellRef.current)
 			: DEFAULT_INTERACTION_TYPES;
 
 	return (
