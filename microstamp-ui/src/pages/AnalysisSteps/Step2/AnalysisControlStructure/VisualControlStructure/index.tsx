@@ -13,13 +13,10 @@ import {
 import {
 	COMPONENT_TYPE_LABELS,
 	COMPONENT_TYPE_OPTIONS,
-	DEFAULT_INTERACTION_TYPES,
 	ENVIRONMENT_CODE,
 	ENVIRONMENT_NAME,
 	FIRST_INTERACTION_CODE,
-	INTERACTION_TYPE_OPTIONS,
-	SOURCE_ENVIRONMENT_INTERACTION_TYPES,
-	TARGET_ENVIRONMENT_INTERACTION_TYPES
+	INTERACTION_TYPE_OPTIONS
 } from "./domain/constants";
 import type {
 	ComponentData,
@@ -42,6 +39,17 @@ import {
 	DEFAULT_COMPONENT_SIZE,
 	SELECTION_HIGHLIGHT_COLOR
 } from "./canvas/visualConstants";
+import {
+	DEFAULT_INTERACTION_TYPES,
+	getAllowedInteractionTypes as getDomainAllowedInteractionTypes,
+	getCascadeDeletionPlan,
+	getComponentDescendantIds as getDomainComponentDescendantIds,
+	getNextCode,
+	getNextInteractionCode,
+	isValidComponentSize,
+	normalizeInteractions
+} from "./domain/rules";
+import type { ConnectionEndpoints, HierarchyComponent } from "./domain/rules";
 import styles from "./VisualControlStructure.module.css";
 import "jointjs/dist/joint.min.css";
 
@@ -59,15 +67,6 @@ interface SideRatioAnchor {
 
 function clamp(value: number) {
 	return Math.max(0, Math.min(1, value));
-}
-
-function isValidComponentSize(width: number, height: number) {
-	return (
-		Number.isInteger(width) &&
-		Number.isInteger(height) &&
-		width >= 20 &&
-		height >= 20
-	);
 }
 
 function sideRatioToPoint(
@@ -133,24 +132,19 @@ function getEndpointComponentType(
 }
 
 function getAllowedInteractionTypes(graph: joint.dia.Graph, link: joint.dia.Cell) {
-	if (getEndpointComponentType(graph, link, "source") === IComponentType.ENVIRONMENT) {
-		return SOURCE_ENVIRONMENT_INTERACTION_TYPES;
-	}
-	if (getEndpointComponentType(graph, link, "target") === IComponentType.ENVIRONMENT) {
-		return TARGET_ENVIRONMENT_INTERACTION_TYPES;
-	}
-	return DEFAULT_INTERACTION_TYPES;
+	return getDomainAllowedInteractionTypes(
+		getEndpointComponentType(graph, link, "source"),
+		getEndpointComponentType(graph, link, "target")
+	);
 }
 
 function normalizeConnectionInteractions(graph: joint.dia.Graph, link: joint.dia.Link) {
 	const data = getDiagramData(link);
 	if (data?.kind !== "connection") return;
 
-	const allowedTypes = getAllowedInteractionTypes(graph, link);
-	const interactions = data.connection.interactions.map(interaction =>
-		allowedTypes.includes(interaction.interactionType)
-			? interaction
-			: { ...interaction, interactionType: allowedTypes[0] }
+	const interactions = normalizeInteractions(
+		data.connection.interactions,
+		getAllowedInteractionTypes(graph, link)
 	);
 	const nextData: ConnectionData = {
 		kind: "connection",
@@ -161,78 +155,96 @@ function normalizeConnectionInteractions(graph: joint.dia.Graph, link: joint.dia
 }
 
 function getComponentDescendantIds(graph: joint.dia.Graph, componentClientId: string) {
-	const descendantIds = new Set<string>();
-	const pendingIds = [componentClientId];
-
-	while (pendingIds.length > 0) {
-		const parentId = pendingIds.pop();
-		if (!parentId) continue;
-
-		graph.getCells().forEach(cell => {
-			const data = getDiagramData(cell);
-			if (
-				data?.kind === "component" &&
-				data.component.fatherClientId === parentId &&
-				!descendantIds.has(data.component.clientId)
-			) {
-				descendantIds.add(data.component.clientId);
-				pendingIds.push(data.component.clientId);
-			}
-		});
-	}
-
-	return descendantIds;
+	const components: HierarchyComponent[] = graph.getCells().flatMap(cell => {
+		const data = getDiagramData(cell);
+		return data?.kind === "component"
+			? [
+					{
+						clientId: data.component.clientId,
+						fatherClientId: data.component.fatherClientId,
+						type: data.component.type
+					}
+				]
+			: [];
+	});
+	return getDomainComponentDescendantIds(components, componentClientId);
 }
 
-function removeDiagramCell(
+function getEndpointComponentClientId(
 	graph: joint.dia.Graph,
 	cell: joint.dia.Cell,
-	visited = new Set<string>()
-): boolean {
-	const data = getDiagramData(cell);
-	let environmentRemoved =
-		data?.kind === "component" && data.component.type === IComponentType.ENVIRONMENT;
-	if (data?.kind === "component") {
-		if (visited.has(data.component.clientId)) return false;
-		visited.add(data.component.clientId);
+	end: "source" | "target"
+) {
+	const endpoint: unknown = cell.get(end);
+	if (!endpoint || typeof endpoint !== "object" || !("id" in endpoint)) return null;
 
-		graph.getCells().forEach(candidate => {
-			const candidateData = getDiagramData(candidate);
-			if (
-				candidateData?.kind === "component" &&
-				candidateData.component.fatherClientId === data.component.clientId
-			) {
-				environmentRemoved =
-					removeDiagramCell(graph, candidate, visited) || environmentRemoved;
-			}
-		});
+	const endpointId = endpoint.id;
+	if (typeof endpointId !== "string" && typeof endpointId !== "number") return null;
+
+	const endpointCell = graph.getCell(String(endpointId));
+	const data = endpointCell ? getDiagramData(endpointCell) : null;
+	return data?.kind === "component" ? data.component.clientId : null;
+}
+
+function removeDiagramCell(graph: joint.dia.Graph, cell: joint.dia.Cell): boolean {
+	const data = getDiagramData(cell);
+	if (data?.kind !== "component") {
+		cell.remove();
+		return false;
 	}
-	cell.remove();
-	return environmentRemoved;
+
+	const cells = graph.getCells();
+	const components: HierarchyComponent[] = cells.flatMap(candidate => {
+		const candidateData = getDiagramData(candidate);
+		return candidateData?.kind === "component"
+			? [
+					{
+						clientId: candidateData.component.clientId,
+						fatherClientId: candidateData.component.fatherClientId,
+						type: candidateData.component.type
+					}
+				]
+			: [];
+	});
+	const connections: ConnectionEndpoints[] = cells.flatMap(candidate => {
+		const candidateData = getDiagramData(candidate);
+		return candidateData?.kind === "connection"
+			? [
+					{
+						clientId: candidateData.connection.clientId,
+						sourceClientId: getEndpointComponentClientId(graph, candidate, "source"),
+						targetClientId: getEndpointComponentClientId(graph, candidate, "target")
+					}
+				]
+			: [];
+	});
+	const plan = getCascadeDeletionPlan(components, connections, data.component.clientId);
+
+	cells.forEach(candidate => {
+		const candidateData = getDiagramData(candidate);
+		if (
+			(candidateData?.kind === "component" &&
+				plan.componentIds.has(candidateData.component.clientId)) ||
+			(candidateData?.kind === "connection" &&
+				plan.connectionIds.has(candidateData.connection.clientId))
+		) {
+			candidate.remove();
+		}
+	});
+
+	return plan.environmentIncluded;
 }
 
 function nextCode(graph: joint.dia.Graph, prefix: "C" | "Cn") {
-	const pattern = new RegExp(`^${prefix}\\.(\\d+)$`);
-	const maxCode = graph.getCells().reduce((max, cell) => {
+	const existingCodes = graph.getCells().flatMap(cell => {
 		const data = getDiagramData(cell);
-		const code =
-			data?.kind === "component"
-				? data.component.code
-				: data?.kind === "connection"
-					? data.connection.code
-					: undefined;
-		const match = code?.match(pattern);
-		return match ? Math.max(max, Number(match[1])) : max;
-	}, 0);
-	return `${prefix}.${String(maxCode + 1).padStart(2, "0")}`;
-}
-
-function nextInteractionCode(interactions: InteractionData[]) {
-	const maxCode = interactions.reduce((max, interaction) => {
-		const match = interaction.code.match(/^In\.(\d+)$/);
-		return match ? Math.max(max, Number(match[1])) : max;
-	}, 0);
-	return `In.${String(maxCode + 1).padStart(2, "0")}`;
+		return data?.kind === "component"
+			? [data.component.code]
+			: data?.kind === "connection"
+				? [data.connection.code]
+				: [];
+	});
+	return getNextCode(existingCodes, prefix);
 }
 
 function createClientId() {
@@ -1167,7 +1179,7 @@ function VisualControlStructure({
 													...current.interactions,
 													{
 														clientId: createClientId(),
-														code: nextInteractionCode(current.interactions),
+														code: getNextInteractionCode(current.interactions),
 														name: "",
 														interactionType: allowedDraftInteractionTypes[0]
 													}

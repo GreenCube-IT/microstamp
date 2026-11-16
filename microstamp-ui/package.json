@@ -6,6 +6,7 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "tsc -b && vite build",
+		"test:domain": "node --experimental-strip-types --test src/pages/AnalysisSteps/Step2/AnalysisControlStructure/VisualControlStructure/domain/rules.test.ts",
 		"lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
 		"preview": "vite preview"
 	},

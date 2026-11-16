@@ -21,19 +21,6 @@ export const INTERACTION_TYPE_OPTIONS: { value: IInteractionType; label: string 
 	{ value: IInteractionType.DISTURBANCE, label: "Disturbance" }
 ];
 
-export const DEFAULT_INTERACTION_TYPES = [
-	IInteractionType.CONTROL_ACTION,
-	IInteractionType.FEEDBACK,
-	IInteractionType.COMMUNICATION_CHANNEL
-];
-
-export const SOURCE_ENVIRONMENT_INTERACTION_TYPES = [
-	IInteractionType.PROCESS_INPUT,
-	IInteractionType.DISTURBANCE
-];
-
-export const TARGET_ENVIRONMENT_INTERACTION_TYPES = [IInteractionType.PROCESS_OUTPUT];
-
 export const COMPONENT_TYPE_LABELS: Record<IComponentType, string> = {
 	[IComponentType.CONTROLLER]: "Controller",
 	[IComponentType.CONTROLLED_PROCESS]: "Controlled process",
