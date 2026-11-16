@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { IComponentType } from "@interfaces/IStep2/IComponent";
+import { IInteractionType } from "@interfaces/IStep2/IInteraction/Enums";
 import {
 	getAllowedInteractionTypes,
 	getCascadeDeletionPlan,
@@ -14,13 +16,6 @@ import {
 } from "./rules.ts";
 import type { HierarchyComponent } from "./rules.ts";
 import type { InteractionData } from "./types";
-
-const COMPONENT_TYPE = {
-	CONTROLLER: "CONTROLLER",
-	ACTUATOR: "ACTUATOR",
-	SENSOR: "SENSOR",
-	ENVIRONMENT: "ENVIRONMENT"
-} as const;
 
 test("reserved Environment identity and code are recognized", () => {
 	assert.equal(isReservedComponentName("Environment"), true);
@@ -42,16 +37,20 @@ test("component size validation preserves integer minimum bounds", () => {
 
 test("interaction types depend on Environment endpoint roles", () => {
 	assert.deepEqual(
-		getAllowedInteractionTypes(COMPONENT_TYPE.ENVIRONMENT, COMPONENT_TYPE.CONTROLLER),
-		["PROCESS_INPUT", "DISTURBANCE"]
+		getAllowedInteractionTypes(IComponentType.ENVIRONMENT, IComponentType.CONTROLLER),
+		[IInteractionType.PROCESS_INPUT, IInteractionType.DISTURBANCE]
 	);
 	assert.deepEqual(
-		getAllowedInteractionTypes(COMPONENT_TYPE.CONTROLLER, COMPONENT_TYPE.ENVIRONMENT),
-		["PROCESS_OUTPUT"]
+		getAllowedInteractionTypes(IComponentType.CONTROLLER, IComponentType.ENVIRONMENT),
+		[IInteractionType.PROCESS_OUTPUT]
 	);
 	assert.deepEqual(
-		getAllowedInteractionTypes(COMPONENT_TYPE.CONTROLLER, COMPONENT_TYPE.SENSOR),
-		["CONTROL_ACTION", "FEEDBACK", "COMMUNICATION_CHANNEL"]
+		getAllowedInteractionTypes(IComponentType.CONTROLLER, IComponentType.SENSOR),
+		[
+			IInteractionType.CONTROL_ACTION,
+			IInteractionType.FEEDBACK,
+			IInteractionType.COMMUNICATION_CHANNEL
+		]
 	);
 });
 
@@ -61,21 +60,21 @@ test("interactions that become invalid are normalized to the first allowed type"
 			clientId: "i1",
 			code: "In.01",
 			name: "",
-			interactionType: "CONTROL_ACTION" as InteractionData["interactionType"]
+			interactionType: IInteractionType.CONTROL_ACTION
 		},
 		{
 			clientId: "i2",
 			code: "In.02",
 			name: "Valid",
-			interactionType: "PROCESS_INPUT" as InteractionData["interactionType"]
+			interactionType: IInteractionType.PROCESS_INPUT
 		}
 	];
 
 	assert.deepEqual(
-		normalizeInteractions(interactions, ["PROCESS_OUTPUT"]),
+		normalizeInteractions(interactions, [IInteractionType.PROCESS_OUTPUT]),
 		interactions.map(interaction => ({
 			...interaction,
-			interactionType: "PROCESS_OUTPUT"
+			interactionType: IInteractionType.PROCESS_OUTPUT
 		}))
 	);
 });
@@ -85,22 +84,22 @@ test("descendant lookup includes every nested level without including the root",
 		{
 			clientId: "root",
 			fatherClientId: null,
-			type: COMPONENT_TYPE.CONTROLLER as HierarchyComponent["type"]
+			type: IComponentType.CONTROLLER
 		},
 		{
 			clientId: "child",
 			fatherClientId: "root",
-			type: COMPONENT_TYPE.ACTUATOR as HierarchyComponent["type"]
+			type: IComponentType.ACTUATOR
 		},
 		{
 			clientId: "grandchild",
 			fatherClientId: "child",
-			type: COMPONENT_TYPE.SENSOR as HierarchyComponent["type"]
+			type: IComponentType.SENSOR
 		},
 		{
 			clientId: "other",
 			fatherClientId: null,
-			type: COMPONENT_TYPE.CONTROLLER as HierarchyComponent["type"]
+			type: IComponentType.CONTROLLER
 		}
 	];
 
@@ -115,17 +114,17 @@ test("cascade plan removes descendants and connections that become orphaned", ()
 		{
 			clientId: "root",
 			fatherClientId: null,
-			type: COMPONENT_TYPE.CONTROLLER as HierarchyComponent["type"]
+			type: IComponentType.CONTROLLER
 		},
 		{
 			clientId: "child",
 			fatherClientId: "root",
-			type: COMPONENT_TYPE.ENVIRONMENT as HierarchyComponent["type"]
+			type: IComponentType.ENVIRONMENT
 		},
 		{
 			clientId: "other",
 			fatherClientId: null,
-			type: COMPONENT_TYPE.SENSOR as HierarchyComponent["type"]
+			type: IComponentType.SENSOR
 		}
 	];
 	const connections = [

@@ -1,21 +1,21 @@
-import type { IComponentType } from "@interfaces/IStep2/IComponent";
-import type { IInteractionType } from "@interfaces/IStep2/IInteraction/Enums";
+import { IComponentType } from "@interfaces/IStep2/IComponent";
+import { IInteractionType } from "@interfaces/IStep2/IInteraction/Enums";
 import type { InteractionData } from "./types";
 
 const RESERVED_COMPONENT_NAMES = ["Environment"] as const;
 const RESERVED_COMPONENT_CODES = ["Env"] as const;
 
 export const DEFAULT_INTERACTION_TYPES = [
-	"CONTROL_ACTION" as IInteractionType,
-	"FEEDBACK" as IInteractionType,
-	"COMMUNICATION_CHANNEL" as IInteractionType
+	IInteractionType.CONTROL_ACTION,
+	IInteractionType.FEEDBACK,
+	IInteractionType.COMMUNICATION_CHANNEL
 ];
 export const SOURCE_ENVIRONMENT_INTERACTION_TYPES = [
-	"PROCESS_INPUT" as IInteractionType,
-	"DISTURBANCE" as IInteractionType
+	IInteractionType.PROCESS_INPUT,
+	IInteractionType.DISTURBANCE
 ];
 export const TARGET_ENVIRONMENT_INTERACTION_TYPES = [
-	"PROCESS_OUTPUT" as IInteractionType
+	IInteractionType.PROCESS_OUTPUT
 ];
 
 export interface HierarchyComponent {
@@ -56,8 +56,8 @@ export function getAllowedInteractionTypes(
 	sourceType: IComponentType | null,
 	targetType: IComponentType | null
 ): IInteractionType[] {
-	if (sourceType === "ENVIRONMENT") return SOURCE_ENVIRONMENT_INTERACTION_TYPES;
-	if (targetType === "ENVIRONMENT") return TARGET_ENVIRONMENT_INTERACTION_TYPES;
+	if (sourceType === IComponentType.ENVIRONMENT) return SOURCE_ENVIRONMENT_INTERACTION_TYPES;
+	if (targetType === IComponentType.ENVIRONMENT) return TARGET_ENVIRONMENT_INTERACTION_TYPES;
 	return DEFAULT_INTERACTION_TYPES;
 }
 
@@ -118,7 +118,7 @@ export function getCascadeDeletionPlan(
 	);
 	const environmentIncluded = components.some(
 		component =>
-			componentIds.has(component.clientId) && component.type === "ENVIRONMENT"
+			componentIds.has(component.clientId) && component.type === IComponentType.ENVIRONMENT
 	);
 
 	return { componentIds, connectionIds, environmentIncluded };
