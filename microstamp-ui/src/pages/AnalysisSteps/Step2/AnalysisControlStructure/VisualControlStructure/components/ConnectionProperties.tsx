@@ -1,4 +1,7 @@
-import { IConnectionStyle } from "@interfaces/IStep2/IConnection";
+import {
+	connectionStyleSelectOptions,
+	IConnectionStyle
+} from "@interfaces/IStep2/IConnection/Enums";
 import { IInteractionType } from "@interfaces/IStep2/IInteraction/Enums";
 import type { ConnectionDraft } from "../domain/types";
 import InteractionEditor from "./InteractionEditor";
@@ -37,9 +40,11 @@ function ConnectionProperties({
 					value={draft.style}
 					onChange={event => onChange({ style: event.target.value as IConnectionStyle })}
 				>
-					<option value={IConnectionStyle.SOLID}>Solid</option>
-					<option value={IConnectionStyle.DASHED}>Dashed</option>
-					<option value={IConnectionStyle.ETCHED}>Etched</option>
+					{connectionStyleSelectOptions.map(style => (
+						<option key={style.value} value={style.value}>
+							{style.label}
+						</option>
+					))}
 				</select>
 			</label>
 			<InteractionEditor

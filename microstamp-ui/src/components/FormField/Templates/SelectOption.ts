@@ -1,5 +1,5 @@
-interface SelectOption {
-	value: string;
+interface SelectOption<TValue extends string = string> {
+	value: TValue;
 	label: string;
 }
 

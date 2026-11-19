@@ -16,7 +16,7 @@ export { IConnectionStyle };
 
 // Connection Style Select Options
 
-const connectionStyleSelectOptions: SelectOption[] = [
+const connectionStyleSelectOptions: SelectOption<IConnectionStyle>[] = [
 	{ label: "Solid", value: IConnectionStyle.SOLID },
 	{ label: "Dashed", value: IConnectionStyle.DASHED },
 	{ label: "Etched", value: IConnectionStyle.ETCHED }

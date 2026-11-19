@@ -1,4 +1,5 @@
 import { IComponentBorder, IComponentType } from "@interfaces/IStep2/IComponent";
+import { componentTypeToSelectOption } from "@interfaces/IStep2/IComponent/Enums";
 import { IConnectionStyle } from "@interfaces/IStep2/IConnection";
 import { IInteractionType } from "@interfaces/IStep2/IInteraction/Enums";
 import * as joint from "jointjs";
@@ -25,7 +26,6 @@ import {
 	DEFAULT_COMPONENT_SIZE
 } from "./visualConstants";
 import {
-	COMPONENT_TYPE_LABELS,
 	ENVIRONMENT_CODE,
 	ENVIRONMENT_NAME,
 	FIRST_INTERACTION_CODE
@@ -344,7 +344,7 @@ export function createJointCanvas(
 			const code = isEnvironment ? ENVIRONMENT_CODE : getNextDiagramCode(graph, "C");
 			const name = isEnvironment
 				? ENVIRONMENT_NAME
-				: `${COMPONENT_TYPE_LABELS[type]} ${code.split(".")[1]}`;
+				: `${componentTypeToSelectOption(type).label} ${code.split(".")[1]}`;
 			const size = DEFAULT_COMPONENT_SIZE;
 			const translation = paper.translate();
 			const centerX = (host.clientWidth / 2 - translation.tx) / scale;

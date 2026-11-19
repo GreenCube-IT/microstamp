@@ -1,5 +1,8 @@
-import { IComponentBorder } from "@interfaces/IStep2/IComponent";
-import { COMPONENT_TYPE_OPTIONS } from "../domain/constants";
+import {
+	borderSelectOptions,
+	componentTypeSelectOptions,
+	IComponentBorder
+} from "@interfaces/IStep2/IComponent/Enums";
 import type { ComponentData, ComponentDraft } from "../domain/types";
 import { isValidComponentSize } from "../domain/rules";
 import styles from "../VisualControlStructure.module.css";
@@ -62,7 +65,7 @@ function ComponentProperties({
 					value={draft.type}
 					onChange={event => onChange({ type: event.target.value as ComponentDraft["type"] })}
 				>
-					{COMPONENT_TYPE_OPTIONS.map(type => (
+					{componentTypeSelectOptions.map(type => (
 						<option key={type.value} value={type.value}>
 							{type.label}
 						</option>
@@ -89,9 +92,11 @@ function ComponentProperties({
 					value={draft.border}
 					onChange={event => onChange({ border: event.target.value as IComponentBorder })}
 				>
-					<option value={IComponentBorder.SOLID}>Solid</option>
-					<option value={IComponentBorder.DASHED}>Dashed</option>
-					<option value={IComponentBorder.ETCHED}>Etched</option>
+					{borderSelectOptions.map(border => (
+						<option key={border.value} value={border.value}>
+							{border.label}
+						</option>
+					))}
 				</select>
 			</label>
 			<button

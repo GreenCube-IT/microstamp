@@ -1,6 +1,8 @@
-import { IInteractionType } from "@interfaces/IStep2/IInteraction/Enums";
+import {
+	interactionTypesSelectOptions,
+	IInteractionType
+} from "@interfaces/IStep2/IInteraction/Enums";
 import { BiPlus as AddIcon, BiTrash as DeleteIcon } from "react-icons/bi";
-import { INTERACTION_TYPE_OPTIONS } from "../domain/constants";
 import type { InteractionData } from "../domain/types";
 import styles from "../VisualControlStructure.module.css";
 
@@ -50,7 +52,7 @@ function InteractionEditor({
 							value={interaction.interactionType}
 							onChange={event => onTypeChange(index, event.target.value as IInteractionType)}
 						>
-							{INTERACTION_TYPE_OPTIONS.filter(type =>
+							{interactionTypesSelectOptions.filter(type =>
 								allowedTypes.includes(type.value)
 							).map(type => (
 								<option key={type.value} value={type.value}>

@@ -1,19 +1,20 @@
-import { IComponentType } from "@interfaces/IStep2/IComponent";
+import {
+	componentTypeSelectOptions,
+	IComponentType
+} from "@interfaces/IStep2/IComponent/Enums";
 import { BiPlus as AddIcon } from "react-icons/bi";
-import { COMPONENT_TYPE_OPTIONS } from "../domain/constants";
-import type { IComponentType as ComponentType } from "@interfaces/IStep2/IComponent";
 import styles from "../VisualControlStructure.module.css";
 
 interface ComponentPaletteProps {
 	environmentIncluded: boolean;
-	onAddComponent: (type: ComponentType) => void;
+	onAddComponent: (type: IComponentType) => void;
 }
 
 function ComponentPalette({ environmentIncluded, onAddComponent }: ComponentPaletteProps) {
 	return (
 		<aside className={styles.palette} aria-label="Add a component">
 			<h2>Components</h2>
-			{COMPONENT_TYPE_OPTIONS.map(componentType => (
+			{componentTypeSelectOptions.map(componentType => (
 				<button
 					key={componentType.value}
 					type="button"
