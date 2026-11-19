@@ -1,8 +1,7 @@
-import {
-	connectionStyleSelectOptions,
-	IConnectionStyle
-} from "@interfaces/IStep2/IConnection/Enums";
-import { IInteractionType } from "@interfaces/IStep2/IInteraction/Enums";
+import { connectionStyleSelectOptions } from "@interfaces/IStep2/IConnection/Enums";
+import type { IInteractionType } from "@interfaces/IStep2/IInteraction/Enums";
+import { Input, ConnectionStyleSelect } from "@components/FormField";
+import Button from "@components/Button";
 import type { ConnectionDraft } from "../domain/types";
 import InteractionEditor from "./InteractionEditor";
 import styles from "../VisualControlStructure.module.css";
@@ -30,23 +29,17 @@ function ConnectionProperties({
 }: ConnectionPropertiesProps) {
 	return (
 		<div className={styles.property_form}>
-			<label>
-				Connection code
-				<input value={draft.code} onChange={event => onChange({ code: event.target.value })} />
-			</label>
-			<label>
-				Style
-				<select
-					value={draft.style}
-					onChange={event => onChange({ style: event.target.value as IConnectionStyle })}
-				>
-					{connectionStyleSelectOptions.map(style => (
-						<option key={style.value} value={style.value}>
-							{style.label}
-						</option>
-					))}
-				</select>
-			</label>
+			<Input
+				label="Connection code"
+				value={draft.code}
+				onChange={code => onChange({ code })}
+			/>
+			<ConnectionStyleSelect
+				value={
+					connectionStyleSelectOptions.find(style => style.value === draft.style) ?? null
+				}
+				onChange={style => style && onChange({ style: style.value })}
+			/>
 			<InteractionEditor
 				interactions={draft.interactions}
 				allowedTypes={allowedInteractionTypes}
@@ -55,9 +48,9 @@ function ConnectionProperties({
 				onRemove={onInteractionRemove}
 				onAdd={onInteractionAdd}
 			/>
-			<button type="button" className={styles.apply_button} onClick={onApply}>
+			<Button onClick={onApply}>
 				Apply
-			</button>
+			</Button>
 		</div>
 	);
 }

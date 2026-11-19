@@ -1,7 +1,8 @@
-import {
-	interactionTypesSelectOptions,
-	IInteractionType
-} from "@interfaces/IStep2/IInteraction/Enums";
+import { interactionTypesSelectOptions } from "@interfaces/IStep2/IInteraction/Enums";
+import type { IInteractionType } from "@interfaces/IStep2/IInteraction/Enums";
+import { Input, InteractionTypeSelect } from "@components/FormField";
+import Button from "@components/Button";
+import IconButton from "@components/Button/IconButton";
 import { BiPlus as AddIcon, BiTrash as DeleteIcon } from "react-icons/bi";
 import type { InteractionData } from "../domain/types";
 import styles from "../VisualControlStructure.module.css";
@@ -30,43 +31,31 @@ function InteractionEditor({
 				<div key={interaction.clientId} className={styles.interaction}>
 					<div className={styles.interaction_header}>
 						<strong>{interaction.code}</strong>
-						<button
-							type="button"
-							className={styles.remove_interaction}
+						<IconButton
 							onClick={() => onRemove(index)}
 							aria-label={`Remove interaction ${interaction.code}`}
-						>
-							<DeleteIcon />
-						</button>
-					</div>
-					<label>
-						Name
-						<input
-							value={interaction.name}
-							onChange={event => onNameChange(index, event.target.value)}
+							icon={DeleteIcon}
 						/>
-					</label>
-					<label>
-						Type
-						<select
-							value={interaction.interactionType}
-							onChange={event => onTypeChange(index, event.target.value as IInteractionType)}
-						>
-							{interactionTypesSelectOptions.filter(type =>
-								allowedTypes.includes(type.value)
-							).map(type => (
-								<option key={type.value} value={type.value}>
-									{type.label}
-								</option>
-							))}
-						</select>
-					</label>
+					</div>
+					<Input
+						label="Name"
+						value={interaction.name}
+						onChange={name => onNameChange(index, name)}
+					/>
+					<InteractionTypeSelect
+						value={
+							interactionTypesSelectOptions.find(
+								type => type.value === interaction.interactionType
+							) ?? null
+						}
+						allowedTypes={allowedTypes}
+						onChange={type => type && onTypeChange(index, type.value)}
+					/>
 				</div>
 			))}
-			<button type="button" className={styles.add_interaction} onClick={onAdd}>
-				<AddIcon />
+			<Button icon={AddIcon} size="small" variant="dark" onClick={onAdd}>
 				Add interaction
-			</button>
+			</Button>
 		</>
 	);
 }

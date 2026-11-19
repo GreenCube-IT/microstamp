@@ -1,8 +1,9 @@
 import {
 	borderSelectOptions,
-	componentTypeSelectOptions,
-	IComponentBorder
+	componentTypeSelectOptions
 } from "@interfaces/IStep2/IComponent/Enums";
+import { ComponentBorderSelect, ComponentTypeSelect, Input, Select } from "@components/FormField";
+import Button from "@components/Button";
 import type { ComponentData, ComponentDraft } from "../domain/types";
 import { isValidComponentSize } from "../domain/rules";
 import styles from "../VisualControlStructure.module.css";
@@ -21,92 +22,58 @@ function ComponentProperties({
 	onApply
 }: ComponentPropertiesProps) {
 	const validSize = isValidComponentSize(draft.width, draft.height);
+	const fatherSelectOptions = fatherOptions.map(component => ({
+		label: `${component.name} (${component.code})`,
+		value: component.clientId
+	}));
+	const selectedFather =
+		fatherSelectOptions.find(father => father.value === draft.fatherClientId) ?? null;
 
 	return (
 		<div className={styles.property_form}>
-			<label>
-				Name
-				<input value={draft.name} onChange={event => onChange({ name: event.target.value })} />
-			</label>
-			<label>
-				Code
-				<input value={draft.code} onChange={event => onChange({ code: event.target.value })} />
-			</label>
+			<Input label="Name" value={draft.name} onChange={name => onChange({ name })} />
+			<Input label="Code" value={draft.code} onChange={code => onChange({ code })} />
 			<div className={styles.dimensions_fields}>
-				<label>
-					Width (px)
-					<input
-						type="number"
-						min={20}
-						step={1}
-						value={draft.width}
-						onChange={event => onChange({ width: Number(event.target.value) })}
-					/>
-				</label>
-				<label>
-					Height (px)
-					<input
-						type="number"
-						min={20}
-						step={1}
-						value={draft.height}
-						onChange={event => onChange({ height: Number(event.target.value) })}
-					/>
-				</label>
+				<Input
+					label="Width (px)"
+					type="number"
+					min={20}
+					step={1}
+					value={String(draft.width)}
+					onChange={width => onChange({ width: Number(width) })}
+				/>
+				<Input
+					label="Height (px)"
+					type="number"
+					min={20}
+					step={1}
+					value={String(draft.height)}
+					onChange={height => onChange({ height: Number(height) })}
+				/>
 			</div>
 			{!validSize && (
 				<p className={styles.properties_hint}>
 					Width and height must be whole numbers of at least 20 px.
 				</p>
 			)}
-			<label>
-				Type
-				<select
-					value={draft.type}
-					onChange={event => onChange({ type: event.target.value as ComponentDraft["type"] })}
-				>
-					{componentTypeSelectOptions.map(type => (
-						<option key={type.value} value={type.value}>
-							{type.label}
-						</option>
-					))}
-				</select>
-			</label>
-			<label>
-				Father (optional)
-				<select
-					value={draft.fatherClientId ?? ""}
-					onChange={event => onChange({ fatherClientId: event.target.value || null })}
-				>
-					<option value="">None</option>
-					{fatherOptions.map(component => (
-						<option key={component.clientId} value={component.clientId}>
-							{component.name} ({component.code})
-						</option>
-					))}
-				</select>
-			</label>
-			<label>
-				Border
-				<select
-					value={draft.border}
-					onChange={event => onChange({ border: event.target.value as IComponentBorder })}
-				>
-					{borderSelectOptions.map(border => (
-						<option key={border.value} value={border.value}>
-							{border.label}
-						</option>
-					))}
-				</select>
-			</label>
-			<button
-				type="button"
-				className={styles.apply_button}
-				onClick={onApply}
-				disabled={!validSize}
-			>
+			<ComponentTypeSelect
+				value={componentTypeSelectOptions.find(type => type.value === draft.type) ?? null}
+				onChange={type => type && onChange({ type: type.value })}
+			/>
+			<Select
+				label="Father (optional)"
+				options={fatherSelectOptions}
+				value={selectedFather}
+				onChange={father => onChange({ fatherClientId: father?.value ?? null })}
+				optionsPosition="top"
+			/>
+			<ComponentBorderSelect
+				value={borderSelectOptions.find(border => border.value === draft.border) ?? null}
+				onChange={border => border && onChange({ border: border.value })}
+			/>
+			<Button onClick={onApply} disabled={!validSize}>
 				Apply
-			</button>
+			</Button>
 		</div>
 	);
 }
