@@ -5,12 +5,14 @@ import {
 	ACTIVE_ANCHOR_COLOR,
 	ANCHOR_HANDLE_STROKE_COLOR,
 	COMPONENT_COLORS,
+	COMPONENT_OUTLINE_COLOR,
 	CONNECTION_COLOR,
 	CONNECTION_LABEL_BACKGROUND_COLOR,
 	CONNECTION_LABEL_BORDER_COLOR,
 	CONNECTION_LABEL_TEXT_COLOR,
 	DEFAULT_ANCHOR_COLOR,
 	DEFAULT_COMPONENT_SIZE,
+	getThemeColor,
 	SELECTION_HIGHLIGHT_COLOR
 } from "./visualConstants";
 import type { ComponentData, InteractionData } from "../domain/types";
@@ -91,7 +93,7 @@ export function createComponentShape(
 		attrs: {
 			body: {
 				fill: COMPONENT_COLORS[component.type],
-				stroke: CONNECTION_COLOR,
+				stroke: COMPONENT_OUTLINE_COLOR,
 				strokeWidth: 1.5,
 				strokeDasharray: getBorderDashArray(component.border),
 				rx: 4,
@@ -103,7 +105,7 @@ export function createComponentShape(
 				fontSize: 13,
 				fontFamily: "sans-serif",
 				fontWeight: "500",
-				fill: CONNECTION_COLOR,
+				fill: COMPONENT_OUTLINE_COLOR,
 				textWrap: { width: -16, height: -10, ellipsis: true }
 			}
 		}
@@ -118,13 +120,13 @@ export function createConnectionShape(
 		data: { kind: "connection", connection },
 		attrs: {
 			line: {
-				stroke: CONNECTION_COLOR,
+				stroke: getThemeColor(CONNECTION_COLOR),
 				strokeWidth: 1.5,
 				strokeDasharray: getConnectionDashArray(connection.style),
 				targetMarker: {
 					type: "path",
 					d: "M 8 -4 0 0 8 4 z",
-					fill: CONNECTION_COLOR,
+					fill: getThemeColor(CONNECTION_COLOR),
 					stroke: "none"
 				},
 				sourceMarker: { type: "none" }
@@ -165,11 +167,11 @@ export function createInteractionLabels(
 					"data-interaction-code": interaction.code,
 					fontSize: 11,
 					fontFamily: "sans-serif",
-					fill: CONNECTION_LABEL_TEXT_COLOR
+					fill: getThemeColor(CONNECTION_LABEL_TEXT_COLOR)
 				},
 				rect: {
-					fill: CONNECTION_LABEL_BACKGROUND_COLOR,
-					stroke: CONNECTION_LABEL_BORDER_COLOR,
+					fill: getThemeColor(CONNECTION_LABEL_BACKGROUND_COLOR),
+					stroke: getThemeColor(CONNECTION_LABEL_BORDER_COLOR),
 					strokeWidth: 1,
 					rx: 3,
 					ry: 3
@@ -201,15 +203,15 @@ export function createAnchorTool(end: joint.dia.LinkEnd) {
 		},
 		customAnchorAttributes: {
 			r: 6,
-			fill: ACTIVE_ANCHOR_COLOR,
-			stroke: ANCHOR_HANDLE_STROKE_COLOR,
+			fill: getThemeColor(ACTIVE_ANCHOR_COLOR),
+			stroke: getThemeColor(ANCHOR_HANDLE_STROKE_COLOR),
 			"stroke-width": 2,
 			cursor: "grab"
 		},
 		defaultAnchorAttributes: {
 			r: 6,
-			fill: DEFAULT_ANCHOR_COLOR,
-			stroke: ANCHOR_HANDLE_STROKE_COLOR,
+			fill: getThemeColor(DEFAULT_ANCHOR_COLOR),
+			stroke: getThemeColor(ANCHOR_HANDLE_STROKE_COLOR),
 			"stroke-width": 2,
 			cursor: "grab"
 		},
@@ -247,7 +249,7 @@ export function highlightCell(view: joint.dia.CellView | undefined) {
 			name: "stroke",
 			options: {
 				padding: 4,
-				attrs: { stroke: SELECTION_HIGHLIGHT_COLOR, "stroke-width": 2 }
+				attrs: { stroke: getThemeColor(SELECTION_HIGHLIGHT_COLOR), "stroke-width": 2 }
 			}
 		}
 	});
@@ -266,7 +268,7 @@ export function applyComponentAppearance(
 			fill: COMPONENT_COLORS[component.type],
 			strokeDasharray: getBorderDashArray(component.border)
 		},
-		label: { text: component.name }
+		label: { text: component.name, fill: COMPONENT_OUTLINE_COLOR }
 	});
 }
 

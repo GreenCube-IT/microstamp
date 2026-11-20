@@ -23,7 +23,8 @@ import type { ComponentData, ConnectionData, DiagramData, InteractionData } from
 import {
 	CANVAS_BACKGROUND_COLOR,
 	CANVAS_GRID_COLOR,
-	DEFAULT_COMPONENT_SIZE
+	DEFAULT_COMPONENT_SIZE,
+	getThemeColor
 } from "./visualConstants";
 import {
 	ENVIRONMENT_CODE,
@@ -159,8 +160,8 @@ export function createJointCanvas(
 		width: host.clientWidth,
 		height: host.clientHeight,
 		gridSize: 10,
-		drawGrid: { name: "dot", args: { color: CANVAS_GRID_COLOR, gap: 10 } },
-		background: { color: CANVAS_BACKGROUND_COLOR },
+		drawGrid: { name: "dot", args: { color: getThemeColor(CANVAS_GRID_COLOR), gap: 10 } },
+		background: { color: getThemeColor(CANVAS_BACKGROUND_COLOR) },
 		defaultConnectionPoint: { name: "boundary", args: { perpendicular: false } },
 		defaultAnchor: { name: "center" },
 		linkPinning: false,
