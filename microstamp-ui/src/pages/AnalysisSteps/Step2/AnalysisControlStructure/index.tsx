@@ -8,8 +8,7 @@ import { ISteps } from "@interfaces/ISteps";
 import { lazy, Suspense, useState } from "react";
 import { BiExport as PdfIcon } from "react-icons/bi";
 import { useOutletContext } from "react-router-dom";
-import ControlStructureModeSwitch from "../ControlStructureModeSwitch";
-import canvasStyles from "./ControlStructureCanvas.module.css";
+import canvasStyles from "./AnalysisControlStructure.module.css";
 import ComponentsContainer from "./ComponentsContainer";
 import ConnectionsContainer from "./ConnectionsContainer";
 import ControlStructureImage from "./ControlStructureImage";
@@ -39,8 +38,12 @@ function AnalysisControlStructure() {
 
 	return (
 		<>
-			<AnalysisHeader analysis={analysis} step={ISteps.STEP_2} />
-			<ControlStructureModeSwitch mode={mode} onModeChange={handleModeChange} />
+			<AnalysisHeader
+				analysis={analysis}
+				step={ISteps.STEP_2}
+				controlStructureMode={mode}
+				onChangeControlStructureMode={handleModeChange}
+			/>
 
 			{mode === "forms" && (
 				<>

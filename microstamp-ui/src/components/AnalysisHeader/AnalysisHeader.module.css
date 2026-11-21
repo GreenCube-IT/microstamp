@@ -184,27 +184,5 @@
 			}
 		}
 
-		.toggle_button {
-			padding: 0.1rem 0.8rem;
-
-			opacity: 0.5;
-			border: 0.2rem solid var(--color-gray);
-			border-radius: var(--radius1);
-			font-weight: 500;
-
-			background: transparent;
-			color: var(--color-light-gray);
-			font-size: 1.2rem;
-			transition: all 0.2s;
-
-			&:hover {
-				color: var(--color-yellow);
-			}
-
-			&.active {
-				color: var(--color-dark-yellow);
-				opacity: 1;
-			}
-		}
 	}
 }
