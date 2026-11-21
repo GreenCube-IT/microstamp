@@ -46,7 +46,7 @@ function toConnectionData(snapshot: CanvasSnapshotItem[]): ConnectionData[] {
 	return snapshot.flatMap(item => item.data.kind === "connection" ? [item.data] : []);
 }
 
-export function useVisualControlStructure({
+export default function useVisualControlStructure({
 	environmentIncluded: externalEnvironmentIncluded,
 	onEnvironmentIncludedChange,
 	paperHostClassName

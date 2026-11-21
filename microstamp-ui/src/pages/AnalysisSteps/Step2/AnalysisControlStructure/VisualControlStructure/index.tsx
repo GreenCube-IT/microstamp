@@ -2,7 +2,7 @@ import type { IComponentType } from "@interfaces/IStep2/IComponent";
 import CanvasToolbar from "./components/CanvasToolbar";
 import ComponentPalette from "./components/ComponentPalette";
 import PropertiesPanel from "./components/PropertiesPanel";
-import { useVisualControlStructure } from "./hooks/useVisualControlStructure";
+import useVisualControlStructure from "./hooks/useVisualControlStructure";
 import styles from "./VisualControlStructure.module.css";
 import "jointjs/dist/joint.min.css";
 
