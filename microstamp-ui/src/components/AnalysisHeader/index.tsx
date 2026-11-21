@@ -1,5 +1,6 @@
 import { ModalStepsMenu } from "@components/Modal";
 import StepIcon from "@components/StepIcon";
+import ToggleGroup from "@components/ToggleGroup";
 import { IAnalysisReadDto } from "@interfaces/IAnalysis";
 import { getStepLabel, ISteps } from "@interfaces/ISteps";
 import { useState } from "react";
@@ -19,6 +20,8 @@ interface AnalysisHeaderProps {
 	onChangeUCA?: () => void;
 	formalScenarioView?: "class" | "activity";
 	onChangeView?: (view: "class" | "activity") => void;
+	controlStructureMode?: "forms" | "visual";
+	onChangeControlStructureMode?: (mode: "forms" | "visual") => void;
 }
 function AnalysisHeader({
 	analysis,
@@ -27,9 +30,11 @@ function AnalysisHeader({
 	controlAction,
 	uca,
 	formalScenarioView,
+	controlStructureMode,
 	onChangeControlAction,
 	onChangeUCA,
-	onChangeView
+	onChangeView,
+	onChangeControlStructureMode
 }: AnalysisHeaderProps) {
 	const navigate = useNavigate();
 
@@ -132,24 +137,32 @@ function AnalysisHeader({
 							<BiSolidCog />
 							Choose how to organize the containers for your analysis:
 						</span>
-						<button
-							className={`${styles.toggle_button} ${
-								formalScenarioView === "class" ? styles.active : ""
-							}`}
-							onClick={() => onChangeView("class")}
-							type="button"
-						>
-							By Class
-						</button>
-						<button
-							className={`${styles.toggle_button} ${
-								formalScenarioView === "activity" ? styles.active : ""
-							}`}
-							onClick={() => onChangeView("activity")}
-							type="button"
-						>
-							By Activity
-						</button>
+						<ToggleGroup
+							ariaLabel="Formal scenario organization"
+							options={[
+								{ value: "class", label: "By Class" },
+								{ value: "activity", label: "By Activity" }
+							]}
+							value={formalScenarioView}
+							onChange={onChangeView}
+						/>
+					</div>
+				)}
+				{controlStructureMode && onChangeControlStructureMode && (
+					<div className={styles.view_wrapper}>
+						<span className={styles.view_description}>
+							<BiSolidCog />
+							Choose how to model the control structure:
+						</span>
+						<ToggleGroup
+							ariaLabel="Control structure modeling method"
+							options={[
+								{ value: "forms", label: "Forms" },
+								{ value: "visual", label: "Visual canvas" }
+							]}
+							value={controlStructureMode}
+							onChange={onChangeControlStructureMode}
+						/>
 					</div>
 				)}
 			</header>

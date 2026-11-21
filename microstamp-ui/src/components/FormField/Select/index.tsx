@@ -3,16 +3,16 @@ import { useEffect, useState } from "react";
 import { BiChevronDown as ArrowDown, BiChevronUp as ArrowUp } from "react-icons/bi";
 import styles from "./Select.module.css";
 
-interface SelectProps {
+interface SelectProps<TValue extends string = string> {
 	label: string;
-	options: SelectOption[];
-	value: SelectOption | null;
-	onChange: (value: SelectOption | null) => void;
+	options: SelectOption<TValue>[];
+	value: SelectOption<TValue> | null;
+	onChange: (value: SelectOption<TValue> | null) => void;
 	optionsPosition?: "top" | "bottom";
 	disabled?: boolean;
 	required?: boolean;
 }
-function Select({
+function Select<TValue extends string>({
 	label,
 	options,
 	value,
@@ -20,7 +20,7 @@ function Select({
 	optionsPosition = "bottom",
 	disabled = false,
 	required = false
-}: SelectProps) {
+}: SelectProps<TValue>) {
 	const [isOpen, setIsOpen] = useState(false);
 
 	useEffect(() => {

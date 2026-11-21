@@ -6,8 +6,18 @@ interface InputProps {
 	onChange: (value: string) => void;
 	required?: boolean;
 	type?: React.HTMLInputTypeAttribute;
+	min?: number;
+	step?: number;
 }
-function Input({ label, value, onChange, required = false, type = "text" }: InputProps) {
+function Input({
+	label,
+	value,
+	onChange,
+	required = false,
+	type = "text",
+	min,
+	step
+}: InputProps) {
 	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		onChange(e.target.value);
 	};
@@ -20,6 +30,8 @@ function Input({ label, value, onChange, required = false, type = "text" }: Inpu
 				type={type}
 				value={value}
 				onChange={handleInputChange}
+				min={min}
+				step={step}
 			/>
 			<span className={styles.name}>{label}:</span>
 		</label>

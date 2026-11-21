@@ -18,7 +18,7 @@ export { IInteractionType };
 
 // Interaction Type Select Options
 
-const interactionTypesSelectOptions: SelectOption[] = [
+const interactionTypesSelectOptions: SelectOption<IInteractionType>[] = [
 	{ label: "Control Action", value: IInteractionType.CONTROL_ACTION },
 	{ label: "Feedback", value: IInteractionType.FEEDBACK },
 	{ label: "Communication Channel", value: IInteractionType.COMMUNICATION_CHANNEL },
