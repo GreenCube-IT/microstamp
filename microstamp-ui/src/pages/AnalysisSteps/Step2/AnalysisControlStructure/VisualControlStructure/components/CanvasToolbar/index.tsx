@@ -4,7 +4,7 @@ import {
 	BiZoomIn as ZoomInIcon,
 	BiZoomOut as ZoomOutIcon
 } from "react-icons/bi";
-import styles from "../VisualControlStructure.module.css";
+import styles from "../../VisualControlStructure.module.css";
 
 interface CanvasToolbarProps {
 	zoom: number;

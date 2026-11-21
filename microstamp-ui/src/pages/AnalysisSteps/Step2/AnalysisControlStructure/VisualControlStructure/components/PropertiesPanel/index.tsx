@@ -5,10 +5,10 @@ import type {
 	ComponentDraft,
 	ConnectionDraft,
 	PropertiesDraft
-} from "../domain/types";
-import ComponentProperties from "./ComponentProperties";
-import ConnectionProperties from "./ConnectionProperties";
-import styles from "../VisualControlStructure.module.css";
+} from "../../domain/types";
+import ComponentProperties from "../ComponentProperties";
+import ConnectionProperties from "../ConnectionProperties";
+import styles from "../../VisualControlStructure.module.css";
 
 interface PropertiesPanelProps {
 	draft: PropertiesDraft | null;

@@ -4,9 +4,9 @@ import {
 } from "@interfaces/IStep2/IComponent/Enums";
 import { ComponentBorderSelect, ComponentTypeSelect, Input, Select } from "@components/FormField";
 import Button from "@components/Button";
-import type { ComponentData, ComponentDraft } from "../domain/types";
-import { isValidComponentSize } from "../domain/rules";
-import styles from "../VisualControlStructure.module.css";
+import type { ComponentData, ComponentDraft } from "../../domain/types";
+import { isValidComponentSize } from "../../domain/rules";
+import styles from "../../VisualControlStructure.module.css";
 
 interface ComponentPropertiesProps {
 	draft: ComponentDraft;

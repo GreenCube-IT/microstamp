@@ -2,9 +2,9 @@ import { connectionStyleSelectOptions } from "@interfaces/IStep2/IConnection/Enu
 import type { IInteractionType } from "@interfaces/IStep2/IInteraction/Enums";
 import { Input, ConnectionStyleSelect } from "@components/FormField";
 import Button from "@components/Button";
-import type { ConnectionDraft } from "../domain/types";
-import InteractionEditor from "./InteractionEditor";
-import styles from "../VisualControlStructure.module.css";
+import type { ConnectionDraft } from "../../domain/types";
+import InteractionEditor from "../InteractionEditor";
+import styles from "../../VisualControlStructure.module.css";
 
 interface ConnectionPropertiesProps {
 	draft: ConnectionDraft;
