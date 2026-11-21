@@ -4,7 +4,7 @@ import { Input, ConnectionStyleSelect } from "@components/FormField";
 import Button from "@components/Button";
 import type { ConnectionDraft } from "../../domain/types";
 import InteractionEditor from "../InteractionEditor";
-import styles from "../../VisualControlStructure.module.css";
+import styles from "./ConnectionProperties.module.css";
 
 interface ConnectionPropertiesProps {
 	draft: ConnectionDraft;

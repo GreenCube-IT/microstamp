@@ -1,0 +1,99 @@
+.palette {
+	display: flex;
+	flex-direction: column;
+	gap: 1.2rem;
+	min-width: 0;
+	padding: 1.4rem;
+	border-right: 1px solid var(--color-gray);
+	background: var(--color-dark-gray);
+
+	h2 {
+		color: var(--color-white);
+		font-size: 1.4rem;
+		font-weight: 600;
+	}
+}
+
+.palette_item {
+	display: flex;
+	align-items: center;
+	gap: 0.8rem;
+	width: 100%;
+	padding: 0.9rem;
+	border: 1px solid var(--color-gray);
+	border-radius: 0.6rem;
+	background: var(--color-dark);
+	color: var(--color-white);
+	text-align: left;
+	font-size: 1.2rem;
+
+	&:hover:not(:disabled) {
+		border-color: var(--color-yellow);
+		background: var(--color-gray25);
+	}
+
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.45;
+	}
+
+	svg {
+		margin-left: auto;
+		font-size: 1.6rem;
+		color: var(--color-light-gray);
+	}
+}
+
+.palette_swatch {
+	width: 1.8rem;
+	height: 1.8rem;
+	border: 1px solid var(--color-light-gray);
+	border-radius: 0.3rem;
+
+	&[data-component-type="CONTROLLER"] {
+		background-color: #dbeafe;
+	}
+
+	&[data-component-type="CONTROLLED_PROCESS"] {
+		background-color: #dcfce7;
+	}
+
+	&[data-component-type="ACTUATOR"] {
+		background-color: #fef3c7;
+	}
+
+	&[data-component-type="SENSOR"] {
+		background-color: #fce7f3;
+	}
+
+	&[data-component-type="ENVIRONMENT"] {
+		background-color: #e2e8f0;
+	}
+}
+
+.palette_hint {
+	color: var(--color-light-gray);
+	font-size: 1.1rem;
+	line-height: 1.5;
+}
+
+@media (max-width: 650px) {
+	.palette {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.6rem;
+		padding: 0.8rem;
+		border-right: 0;
+		border-bottom: 1px solid var(--color-gray);
+
+		h2,
+		.palette_hint {
+			grid-column: 1 / -1;
+		}
+	}
+
+	.palette_item {
+		padding: 0.6rem;
+		font-size: 1.05rem;
+	}
+}

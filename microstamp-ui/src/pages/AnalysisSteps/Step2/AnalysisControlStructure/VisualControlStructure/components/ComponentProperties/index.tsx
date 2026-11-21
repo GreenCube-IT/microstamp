@@ -6,7 +6,7 @@ import { ComponentBorderSelect, ComponentTypeSelect, Input, Select } from "@comp
 import Button from "@components/Button";
 import type { ComponentData, ComponentDraft } from "../../domain/types";
 import { isValidComponentSize } from "../../domain/rules";
-import styles from "../../VisualControlStructure.module.css";
+import styles from "./ComponentProperties.module.css";
 
 interface ComponentPropertiesProps {
 	draft: ComponentDraft;

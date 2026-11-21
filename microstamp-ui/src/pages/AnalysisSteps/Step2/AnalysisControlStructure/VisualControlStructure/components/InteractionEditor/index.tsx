@@ -5,7 +5,7 @@ import Button from "@components/Button";
 import IconButton from "@components/Button/IconButton";
 import { BiPlus as AddIcon, BiTrash as DeleteIcon } from "react-icons/bi";
 import type { InteractionData } from "../../domain/types";
-import styles from "../../VisualControlStructure.module.css";
+import styles from "./InteractionEditor.module.css";
 
 interface InteractionEditorProps {
 	interactions: InteractionData[];

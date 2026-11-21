@@ -8,7 +8,7 @@ import type {
 } from "../../domain/types";
 import ComponentProperties from "../ComponentProperties";
 import ConnectionProperties from "../ConnectionProperties";
-import styles from "../../VisualControlStructure.module.css";
+import styles from "./PropertiesPanel.module.css";
 
 interface PropertiesPanelProps {
 	draft: PropertiesDraft | null;

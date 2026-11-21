@@ -3,7 +3,7 @@ import {
 	IComponentType
 } from "@interfaces/IStep2/IComponent/Enums";
 import { BiPlus as AddIcon } from "react-icons/bi";
-import styles from "../../VisualControlStructure.module.css";
+import styles from "./ComponentPalette.module.css";
 
 interface ComponentPaletteProps {
 	environmentIncluded: boolean;
