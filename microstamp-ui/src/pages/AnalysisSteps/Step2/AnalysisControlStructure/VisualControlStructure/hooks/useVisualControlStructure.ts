@@ -1,7 +1,6 @@
 import { IComponentType } from "@interfaces/IStep2/IComponent";
 import { IInteractionType } from "@interfaces/IStep2/IInteraction/Enums";
 import { useEffect, useRef, useState } from "react";
-import type { IComponentType as ComponentType } from "@interfaces/IStep2/IComponent";
 import type {
 	ComponentData,
 	ComponentDraft,
@@ -162,7 +161,7 @@ export default function useVisualControlStructure({
 		canvasRef.current?.clear();
 	};
 	const resetView = () => canvasRef.current?.resetView();
-	const onAddComponent = (type: ComponentType) =>
+	const onAddComponent = (type: IComponentType) =>
 		canvasRef.current?.addComponent(type, environmentIncluded);
 
 	const fatherOptions = draft?.kind === "component"

@@ -5,15 +5,14 @@ import PageActions from "@components/PageActions";
 import { getStep2PDF } from "@http/Export";
 import { IAnalysisReadDto } from "@interfaces/IAnalysis";
 import { ISteps } from "@interfaces/ISteps";
-import { lazy, Suspense, useState } from "react";
+import { useState } from "react";
 import { BiExport as PdfIcon } from "react-icons/bi";
 import { useOutletContext } from "react-router-dom";
 import canvasStyles from "./AnalysisControlStructure.module.css";
 import ComponentsContainer from "./ComponentsContainer";
 import ConnectionsContainer from "./ConnectionsContainer";
 import ControlStructureImage from "./ControlStructureImage";
-
-const VisualControlStructure = lazy(() => import("./VisualControlStructure"));
+import VisualControlStructure from "./VisualControlStructure";
 
 function AnalysisControlStructure() {
 	/* - - - - - - - - - - - - - - - - - - - - - - */
@@ -77,12 +76,10 @@ function AnalysisControlStructure() {
 					<p>Model components and their control or feedback interactions.</p>
 				</div>
 				{visualEditorStarted && (
-					<Suspense fallback={<p className={canvasStyles.editor_loading}>Loading visual editor…</p>}>
-						<VisualControlStructure
-							environmentIncluded={environmentIncluded}
-							onEnvironmentIncludedChange={setEnvironmentIncluded}
-						/>
-					</Suspense>
+					<VisualControlStructure
+						environmentIncluded={environmentIncluded}
+						onEnvironmentIncludedChange={setEnvironmentIncluded}
+					/>
 				)}
 			</main>
 		</>
