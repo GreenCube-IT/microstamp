@@ -145,20 +145,21 @@ export function createJointCanvas(
 	host.appendChild(paperContainer);
 
 	const graph = new joint.dia.Graph({}, { cellNamespace: joint.shapes });
-	Object.assign(joint.anchors, {
-		sideRatio: (
-			endView: joint.dia.CellView,
-			magnet: SVGElement,
-			reference: joint.g.Point | SVGElement,
-			args: SideRatioAnchor
-		) => getSideRatioAnchor(endView, magnet, reference, args)
-	});
 
 	const paper = new joint.dia.Paper({
 		el: paperContainer,
 		model: graph,
 		width: host.clientWidth,
 		height: host.clientHeight,
+		anchorNamespace: {
+			...joint.anchors,
+			sideRatio: (
+				endView: joint.dia.CellView,
+				magnet: SVGElement,
+				reference: joint.g.Point | SVGElement,
+				args: SideRatioAnchor
+			) => getSideRatioAnchor(endView, magnet, reference, args)
+		},
 		gridSize: 10,
 		drawGrid: { name: "dot", args: { color: getThemeColor(CANVAS_GRID_COLOR), gap: 10 } },
 		background: { color: getThemeColor(CANVAS_BACKGROUND_COLOR) },
