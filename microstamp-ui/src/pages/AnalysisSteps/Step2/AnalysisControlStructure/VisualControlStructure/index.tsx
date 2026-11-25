@@ -1,4 +1,6 @@
+import { ModalConfirm } from "@components/Modal";
 import type { IComponentType } from "@interfaces/IStep2/IComponent";
+import { useState } from "react";
 import CanvasToolbar from "./components/CanvasToolbar";
 import ComponentPalette from "./components/ComponentPalette";
 import PropertiesPanel from "./components/PropertiesPanel";
@@ -15,11 +17,16 @@ function VisualControlStructure({
 	environmentIncluded,
 	onEnvironmentIncludedChange
 }: VisualControlStructureProps) {
+	const [clearConfirmationOpen, setClearConfirmationOpen] = useState(false);
 	const editor = useVisualControlStructure({
 		environmentIncluded,
 		onEnvironmentIncludedChange,
 		paperHostClassName: styles.paper_host
 	});
+	const clearDiagram = () => {
+		editor.clearDiagram();
+		setClearConfirmationOpen(false);
+	};
 
 	return (
 		<div className={styles.editor}>
@@ -36,7 +43,7 @@ function VisualControlStructure({
 					onZoomOut={editor.zoomOut}
 					onZoomIn={editor.zoomIn}
 					onDelete={editor.deleteSelected}
-					onClear={editor.clearDiagram}
+					onClear={() => setClearConfirmationOpen(true)}
 				/>
 				<div
 					ref={editor.canvasContainerRef}
@@ -53,6 +60,7 @@ function VisualControlStructure({
 
 			<PropertiesPanel
 				draft={editor.draft}
+				validationMessage={editor.validationMessage}
 				fatherOptions={editor.fatherOptions}
 				allowedInteractionTypes={editor.allowedInteractionTypes}
 				onComponentChange={editor.onComponentChange}
@@ -62,6 +70,14 @@ function VisualControlStructure({
 				onInteractionRemove={editor.onInteractionRemove}
 				onInteractionAdd={editor.onInteractionAdd}
 				onApply={editor.applyDraft}
+			/>
+			<ModalConfirm
+				open={clearConfirmationOpen}
+				onClose={() => setClearConfirmationOpen(false)}
+				onConfirm={clearDiagram}
+				message="Do you want to clear all components and connections?"
+				title="Clear Diagram"
+				btnText="Clear"
 			/>
 		</div>
 	);

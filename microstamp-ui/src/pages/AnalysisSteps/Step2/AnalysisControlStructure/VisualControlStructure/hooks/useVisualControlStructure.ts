@@ -15,6 +15,9 @@ import {
 	getAllowedInteractionTypes,
 	getComponentDescendantIds,
 	getNextInteractionCode,
+	isReservedComponentCode,
+	isReservedComponentName,
+	isUniqueCode,
 	isValidComponentSize
 } from "../domain/rules";
 import type { HierarchyComponent } from "../domain/rules";
@@ -120,10 +123,43 @@ export default function useVisualControlStructure({
 		};
 	}, [paperHostClassName]);
 
+	const getValidationMessage = (candidate: PropertiesDraft): string | null => {
+		if (candidate.kind === "component") {
+			if (!isValidComponentSize(candidate.width, candidate.height)) {
+				return "Width and height must be whole numbers of at least 20 px.";
+			}
+			if (isReservedComponentName(candidate.name)) {
+				return "The Environment name is reserved.";
+			}
+			if (isReservedComponentCode(candidate.code)) {
+				return "The Environment code is reserved.";
+			}
+			const existingCodes = [
+				...components
+					.filter(({ component }) => component.clientId !== candidate.clientId)
+					.map(({ component }) => component.code),
+				...connections.map(({ connection }) => connection.code)
+			];
+			if (!isUniqueCode(candidate.code, existingCodes)) {
+				return "Code must be unique across components and connections.";
+			}
+		} else {
+			const existingCodes = [
+				...components.map(({ component }) => component.code),
+				...connections
+					.filter(({ connection }) => connection.clientId !== candidate.clientId)
+					.map(({ connection }) => connection.code)
+			];
+			if (!isUniqueCode(candidate.code, existingCodes)) {
+				return "Code must be unique across components and connections.";
+			}
+		}
+		return null;
+	};
+
 	const applyDraft = () => {
-		if (!draft || !selectedItem) return;
+		if (!draft || !selectedItem || getValidationMessage(draft)) return;
 		if (draft.kind === "component") {
-			if (!isValidComponentSize(draft.width, draft.height)) return;
 			const data: ComponentData = {
 				kind: "component",
 				component: {
@@ -156,10 +192,7 @@ export default function useVisualControlStructure({
 	};
 
 	const deleteSelected = () => canvasRef.current?.deleteSelected();
-	const clearDiagram = () => {
-		if (!window.confirm("Clear all components and connections?")) return;
-		canvasRef.current?.clear();
-	};
+	const clearDiagram = () => canvasRef.current?.clear();
 	const resetView = () => canvasRef.current?.resetView();
 	const onAddComponent = (type: IComponentType) =>
 		canvasRef.current?.addComponent(type, environmentIncluded);
@@ -257,6 +290,7 @@ export default function useVisualControlStructure({
 		connections,
 		selectedItem,
 		draft,
+		validationMessage: draft ? getValidationMessage(draft) : null,
 		environmentIncluded,
 		zoom,
 		fatherOptions,

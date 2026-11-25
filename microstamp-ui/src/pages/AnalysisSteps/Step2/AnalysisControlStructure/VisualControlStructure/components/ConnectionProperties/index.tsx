@@ -9,6 +9,7 @@ import styles from "./ConnectionProperties.module.css";
 interface ConnectionPropertiesProps {
 	draft: ConnectionDraft;
 	allowedInteractionTypes: IInteractionType[];
+	validationMessage: string | null;
 	onChange: (changes: Partial<Pick<ConnectionDraft, "code" | "style">>) => void;
 	onInteractionNameChange: (index: number, name: string) => void;
 	onInteractionTypeChange: (index: number, type: IInteractionType) => void;
@@ -20,6 +21,7 @@ interface ConnectionPropertiesProps {
 function ConnectionProperties({
 	draft,
 	allowedInteractionTypes,
+	validationMessage,
 	onChange,
 	onInteractionNameChange,
 	onInteractionTypeChange,
@@ -34,6 +36,11 @@ function ConnectionProperties({
 				value={draft.code}
 				onChange={code => onChange({ code })}
 			/>
+			{validationMessage && (
+				<p className={styles.properties_hint}>
+					{validationMessage}
+				</p>
+			)}
 			<ConnectionStyleSelect
 				value={
 					connectionStyleSelectOptions.find(style => style.value === draft.style) ?? null
@@ -48,7 +55,7 @@ function ConnectionProperties({
 				onRemove={onInteractionRemove}
 				onAdd={onInteractionAdd}
 			/>
-			<Button onClick={onApply}>
+			<Button onClick={onApply} disabled={validationMessage !== null}>
 				Apply
 			</Button>
 		</div>

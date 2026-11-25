@@ -12,6 +12,7 @@ import styles from "./PropertiesPanel.module.css";
 
 interface PropertiesPanelProps {
 	draft: PropertiesDraft | null;
+	validationMessage: string | null;
 	fatherOptions: ComponentData["component"][];
 	allowedInteractionTypes: IInteractionType[];
 	onComponentChange: (changes: Partial<ComponentDraft>) => void;
@@ -25,6 +26,7 @@ interface PropertiesPanelProps {
 
 function PropertiesPanel({
 	draft,
+	validationMessage,
 	fatherOptions,
 	allowedInteractionTypes,
 	onComponentChange,
@@ -46,6 +48,7 @@ function PropertiesPanel({
 				<ComponentProperties
 					draft={draft}
 					fatherOptions={fatherOptions}
+					validationMessage={validationMessage}
 					onChange={onComponentChange}
 					onApply={onApply}
 				/>
@@ -53,6 +56,7 @@ function PropertiesPanel({
 				<ConnectionProperties
 					draft={draft}
 					allowedInteractionTypes={allowedInteractionTypes}
+					validationMessage={validationMessage}
 					onChange={onConnectionChange}
 					onInteractionNameChange={onInteractionNameChange}
 					onInteractionTypeChange={onInteractionTypeChange}

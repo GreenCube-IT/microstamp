@@ -5,12 +5,12 @@ import {
 import { ComponentBorderSelect, ComponentTypeSelect, Input, Select } from "@components/FormField";
 import Button from "@components/Button";
 import type { ComponentData, ComponentDraft } from "../../domain/types";
-import { isValidComponentSize } from "../../domain/rules";
 import styles from "./ComponentProperties.module.css";
 
 interface ComponentPropertiesProps {
 	draft: ComponentDraft;
 	fatherOptions: ComponentData["component"][];
+	validationMessage: string | null;
 	onChange: (changes: Partial<ComponentDraft>) => void;
 	onApply: () => void;
 }
@@ -18,10 +18,10 @@ interface ComponentPropertiesProps {
 function ComponentProperties({
 	draft,
 	fatherOptions,
+	validationMessage,
 	onChange,
 	onApply
 }: ComponentPropertiesProps) {
-	const validSize = isValidComponentSize(draft.width, draft.height);
 	const fatherSelectOptions = fatherOptions.map(component => ({
 		label: `${component.name} (${component.code})`,
 		value: component.clientId
@@ -51,9 +51,9 @@ function ComponentProperties({
 					onChange={height => onChange({ height: Number(height) })}
 				/>
 			</div>
-			{!validSize && (
+			{validationMessage && (
 				<p className={styles.properties_hint}>
-					Width and height must be whole numbers of at least 20 px.
+					{validationMessage}
 				</p>
 			)}
 			<ComponentTypeSelect
@@ -71,7 +71,7 @@ function ComponentProperties({
 				value={borderSelectOptions.find(border => border.value === draft.border) ?? null}
 				onChange={border => border && onChange({ border: border.value })}
 			/>
-			<Button onClick={onApply} disabled={!validSize}>
+			<Button onClick={onApply} disabled={validationMessage !== null}>
 				Apply
 			</Button>
 		</div>

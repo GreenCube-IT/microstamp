@@ -1,9 +1,7 @@
 import { IComponentType } from "@interfaces/IStep2/IComponent";
 import { IInteractionType } from "@interfaces/IStep2/IInteraction/Enums";
+import { ENVIRONMENT_CODE, ENVIRONMENT_NAME } from "./constants";
 import type { InteractionData } from "./types";
-
-const RESERVED_COMPONENT_NAMES = ["Environment"] as const;
-const RESERVED_COMPONENT_CODES = ["Env"] as const;
 
 export const DEFAULT_INTERACTION_TYPES = [
 	IInteractionType.CONTROL_ACTION,
@@ -37,11 +35,11 @@ export interface CascadeDeletionPlan {
 }
 
 export function isReservedComponentName(name: string) {
-	return RESERVED_COMPONENT_NAMES.includes(name as (typeof RESERVED_COMPONENT_NAMES)[number]);
+	return name === ENVIRONMENT_NAME;
 }
 
 export function isReservedComponentCode(code: string) {
-	return RESERVED_COMPONENT_CODES.includes(code as (typeof RESERVED_COMPONENT_CODES)[number]);
+	return code === ENVIRONMENT_CODE;
 }
 
 export function isUniqueCode(code: string, existingCodes: readonly string[]) {
