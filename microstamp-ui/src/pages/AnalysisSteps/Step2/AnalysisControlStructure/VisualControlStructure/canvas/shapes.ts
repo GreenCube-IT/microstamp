@@ -6,6 +6,7 @@ import {
 	ANCHOR_HANDLE_STROKE_COLOR,
 	COMPONENT_COLORS,
 	COMPONENT_OUTLINE_COLOR,
+	COMPONENT_TEXT_COLOR,
 	CONNECTION_COLOR,
 	CONNECTION_LABEL_BACKGROUND_COLOR,
 	CONNECTION_LABEL_BORDER_COLOR,
@@ -105,7 +106,7 @@ export function createComponentShape(
 				fontSize: 13,
 				fontFamily: "sans-serif",
 				fontWeight: "500",
-				fill: getThemeColor(COMPONENT_OUTLINE_COLOR),
+				fill: getThemeColor(COMPONENT_TEXT_COLOR),
 				textWrap: { width: -16, height: -10, ellipsis: true }
 			}
 		}
@@ -268,7 +269,7 @@ export function applyComponentAppearance(
 			fill: COMPONENT_COLORS[component.type],
 			strokeDasharray: getBorderDashArray(component.border)
 		},
-		label: { text: component.name, fill: getThemeColor(COMPONENT_OUTLINE_COLOR) }
+		label: { text: component.name, fill: getThemeColor(COMPONENT_TEXT_COLOR) }
 	});
 }
 

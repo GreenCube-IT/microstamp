@@ -22,13 +22,14 @@ export function getThemeColor(color: ThemeColor): string {
 }
 
 export const COMPONENT_COLORS: Record<IComponentType, string> = {
-	[IComponentType.CONTROLLER]: "#dbeafe",
-	[IComponentType.CONTROLLED_PROCESS]: "#dcfce7",
-	[IComponentType.ACTUATOR]: "#fef3c7",
-	[IComponentType.SENSOR]: "#fce7f3",
-	[IComponentType.ENVIRONMENT]: "#e2e8f0"
+	[IComponentType.CONTROLLER]: "#60778b",
+	[IComponentType.CONTROLLED_PROCESS]: "#577760",
+	[IComponentType.ACTUATOR]: "#92886a",
+	[IComponentType.SENSOR]: "#98808b",
+	[IComponentType.ENVIRONMENT]: "#747474"
 };
 export const COMPONENT_OUTLINE_COLOR: ThemeColor = "light-gray";
+export const COMPONENT_TEXT_COLOR: ThemeColor = "dark";
 
 export const DEFAULT_COMPONENT_SIZE = { width: 190, height: 76 };
 
