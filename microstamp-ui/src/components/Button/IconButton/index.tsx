@@ -8,13 +8,22 @@ interface IconButtonProps {
 	icon: IconType;
 	"aria-label"?: string;
 	title?: string;
+	disabled?: boolean;
 }
-function IconButton({ onClick, to, icon: Icon, "aria-label": ariaLabel, title }: IconButtonProps) {
+function IconButton({
+	onClick,
+	to,
+	icon: Icon,
+	"aria-label": ariaLabel,
+	title,
+	disabled = false
+}: IconButtonProps) {
 	if (to) {
 		<Link to={to}>
 			<button
 				type="button"
 				onClick={onClick}
+				disabled={disabled}
 				className={styles.icon_button}
 				aria-label={ariaLabel}
 				title={title}
@@ -27,6 +36,7 @@ function IconButton({ onClick, to, icon: Icon, "aria-label": ariaLabel, title }:
 		<button
 			type="button"
 			onClick={onClick}
+			disabled={disabled}
 			className={styles.icon_button}
 			aria-label={ariaLabel}
 			title={title}

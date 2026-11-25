@@ -1,3 +1,5 @@
+import Button from "@components/Button";
+import IconButton from "@components/Button/IconButton";
 import {
 	BiReset as ResetIcon,
 	BiTrash as DeleteIcon,
@@ -27,30 +29,37 @@ function CanvasToolbar({
 }: CanvasToolbarProps) {
 	return (
 		<div className={styles.toolbar} aria-label="Canvas controls">
-			<button type="button" onClick={onReset} title="Reset view" aria-label="Reset view">
-				<ResetIcon />
-			</button>
+			<IconButton
+				onClick={onReset}
+				icon={ResetIcon}
+				title="Reset view"
+				aria-label="Reset view"
+			/>
 			<span className={styles.separator} />
-			<button type="button" onClick={onZoomOut} title="Zoom out" aria-label="Zoom out">
-				<ZoomOutIcon />
-			</button>
+			<IconButton
+				onClick={onZoomOut}
+				icon={ZoomOutIcon}
+				title="Zoom out"
+				aria-label="Zoom out"
+			/>
 			<span className={styles.zoom_value}>{zoom}%</span>
-			<button type="button" onClick={onZoomIn} title="Zoom in" aria-label="Zoom in">
-				<ZoomInIcon />
-			</button>
+			<IconButton
+				onClick={onZoomIn}
+				icon={ZoomInIcon}
+				title="Zoom in"
+				aria-label="Zoom in"
+			/>
 			<span className={styles.separator} />
-			<button
-				type="button"
+			<IconButton
 				onClick={onDelete}
 				disabled={!hasSelection}
+				icon={DeleteIcon}
 				title="Delete selected element"
 				aria-label="Delete selected element"
-			>
-				<DeleteIcon />
-			</button>
-			<button type="button" onClick={onClear} title="Clear diagram">
+			/>
+			<Button size="small" variant="dark" onClick={onClear}>
 				Clear
-			</button>
+			</Button>
 		</div>
 	);
 }
