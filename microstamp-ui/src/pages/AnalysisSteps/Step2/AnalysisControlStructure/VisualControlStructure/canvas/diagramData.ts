@@ -1,4 +1,3 @@
-import { IComponentType } from "@interfaces/IStep2/IComponent";
 import * as joint from "jointjs";
 import {
 	getAllowedInteractionTypes,
@@ -162,8 +161,4 @@ export function updateConnectionLabels(link: joint.dia.Link, interactions: Inter
 	});
 
 	link.labels(createInteractionLabels(interactions, existingPositions));
-}
-
-export function isEnvironmentComponent(data: DiagramData | null): data is ComponentData {
-	return data?.kind === "component" && data.component.type === IComponentType.ENVIRONMENT;
 }

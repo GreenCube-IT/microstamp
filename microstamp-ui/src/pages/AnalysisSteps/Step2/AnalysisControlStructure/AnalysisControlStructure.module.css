@@ -15,14 +15,6 @@
 	display: none;
 }
 
-.editor_loading {
-	display: grid;
-	flex: 1;
-	place-items: center;
-	color: var(--color-light-gray);
-	font-size: 1.4rem;
-}
-
 .workspace_header {
 	display: flex;
 	flex-direction: column;

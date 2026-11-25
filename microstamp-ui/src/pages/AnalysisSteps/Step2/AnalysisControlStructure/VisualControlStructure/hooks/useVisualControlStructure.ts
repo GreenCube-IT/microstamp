@@ -44,10 +44,6 @@ function toComponentData(snapshot: CanvasSnapshotItem[]): ComponentData[] {
 	return snapshot.flatMap(item => item.data.kind === "component" ? [item.data] : []);
 }
 
-function toConnectionData(snapshot: CanvasSnapshotItem[]): ConnectionData[] {
-	return snapshot.flatMap(item => item.data.kind === "connection" ? [item.data] : []);
-}
-
 export default function useVisualControlStructure({
 	environmentIncluded: externalEnvironmentIncluded,
 	onEnvironmentIncludedChange,
@@ -57,7 +53,6 @@ export default function useVisualControlStructure({
 	const canvasRef = useRef<JointCanvasApi | null>(null);
 	const callbacksRef = useRef<JointCanvasCallbacks | null>(null);
 	const [components, setComponents] = useState<ComponentData[]>([]);
-	const [connections, setConnections] = useState<ConnectionData[]>([]);
 	const [selectedItem, setSelectedItem] = useState<DiagramData | null>(null);
 	const [draft, setDraft] = useState<PropertiesDraft | null>(null);
 	const [environmentIncluded, setEnvironmentIncluded] = useState(externalEnvironmentIncluded);
@@ -79,7 +74,6 @@ export default function useVisualControlStructure({
 		},
 		onNodeMove: snapshot => {
 			setComponents(toComponentData(snapshot));
-			setConnections(toConnectionData(snapshot));
 		},
 		onClearSelection: () => {
 			setSelectedItem(null);
@@ -87,7 +81,6 @@ export default function useVisualControlStructure({
 		},
 		onDiagramChange: snapshot => {
 			setComponents(toComponentData(snapshot));
-			setConnections(toConnectionData(snapshot));
 		},
 		onEnvironmentIncludedChange: included => {
 			setEnvironmentIncluded(included);
@@ -138,7 +131,8 @@ export default function useVisualControlStructure({
 				...components
 					.filter(({ component }) => component.clientId !== candidate.clientId)
 					.map(({ component }) => component.code),
-				...connections.map(({ connection }) => connection.code)
+				...(canvasRef.current?.getSnapshot() ?? [])
+					.flatMap(item => item.data.kind === "connection" ? [item.data.connection.code] : [])
 			];
 			if (!isUniqueCode(candidate.code, existingCodes)) {
 				return "Code must be unique across components and connections.";
@@ -146,9 +140,13 @@ export default function useVisualControlStructure({
 		} else {
 			const existingCodes = [
 				...components.map(({ component }) => component.code),
-				...connections
-					.filter(({ connection }) => connection.clientId !== candidate.clientId)
-					.map(({ connection }) => connection.code)
+				...(canvasRef.current?.getSnapshot() ?? [])
+					.flatMap(item =>
+						item.data.kind === "connection" &&
+						item.data.connection.clientId !== candidate.clientId
+							? [item.data.connection.code]
+							: []
+					)
 			];
 			if (!isUniqueCode(candidate.code, existingCodes)) {
 				return "Code must be unique across components and connections.";
@@ -287,7 +285,6 @@ export default function useVisualControlStructure({
 	return {
 		canvasContainerRef,
 		components,
-		connections,
 		selectedItem,
 		draft,
 		validationMessage: draft ? getValidationMessage(draft) : null,
