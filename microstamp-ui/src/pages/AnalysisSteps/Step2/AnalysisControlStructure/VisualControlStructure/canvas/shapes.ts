@@ -93,7 +93,7 @@ export function createComponentShape(
 		attrs: {
 			body: {
 				fill: COMPONENT_COLORS[component.type],
-				stroke: COMPONENT_OUTLINE_COLOR,
+				stroke: getThemeColor(COMPONENT_OUTLINE_COLOR),
 				strokeWidth: 1.5,
 				strokeDasharray: getBorderDashArray(component.border),
 				rx: 4,
@@ -105,7 +105,7 @@ export function createComponentShape(
 				fontSize: 13,
 				fontFamily: "sans-serif",
 				fontWeight: "500",
-				fill: COMPONENT_OUTLINE_COLOR,
+				fill: getThemeColor(COMPONENT_OUTLINE_COLOR),
 				textWrap: { width: -16, height: -10, ellipsis: true }
 			}
 		}
@@ -268,7 +268,7 @@ export function applyComponentAppearance(
 			fill: COMPONENT_COLORS[component.type],
 			strokeDasharray: getBorderDashArray(component.border)
 		},
-		label: { text: component.name, fill: COMPONENT_OUTLINE_COLOR }
+		label: { text: component.name, fill: getThemeColor(COMPONENT_OUTLINE_COLOR) }
 	});
 }
 

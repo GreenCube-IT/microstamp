@@ -49,26 +49,6 @@
 	height: 1.8rem;
 	border: 1px solid var(--color-light-gray);
 	border-radius: 0.3rem;
-
-	&[data-component-type="CONTROLLER"] {
-		background-color: #dbeafe;
-	}
-
-	&[data-component-type="CONTROLLED_PROCESS"] {
-		background-color: #dcfce7;
-	}
-
-	&[data-component-type="ACTUATOR"] {
-		background-color: #fef3c7;
-	}
-
-	&[data-component-type="SENSOR"] {
-		background-color: #fce7f3;
-	}
-
-	&[data-component-type="ENVIRONMENT"] {
-		background-color: #e2e8f0;
-	}
 }
 
 .palette_hint {

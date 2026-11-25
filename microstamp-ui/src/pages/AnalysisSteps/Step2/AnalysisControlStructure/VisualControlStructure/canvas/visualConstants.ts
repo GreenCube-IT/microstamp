@@ -28,7 +28,7 @@ export const COMPONENT_COLORS: Record<IComponentType, string> = {
 	[IComponentType.SENSOR]: "#fce7f3",
 	[IComponentType.ENVIRONMENT]: "#e2e8f0"
 };
-export const COMPONENT_OUTLINE_COLOR = "#1e293b";
+export const COMPONENT_OUTLINE_COLOR: ThemeColor = "light-gray";
 
 export const DEFAULT_COMPONENT_SIZE = { width: 190, height: 76 };
 

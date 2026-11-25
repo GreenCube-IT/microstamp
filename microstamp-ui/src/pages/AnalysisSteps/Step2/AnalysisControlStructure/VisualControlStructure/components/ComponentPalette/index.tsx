@@ -3,6 +3,7 @@ import {
 	IComponentType
 } from "@interfaces/IStep2/IComponent/Enums";
 import { BiPlus as AddIcon } from "react-icons/bi";
+import { COMPONENT_COLORS } from "../../canvas/visualConstants";
 import styles from "./ComponentPalette.module.css";
 
 interface ComponentPaletteProps {
@@ -24,7 +25,7 @@ function ComponentPalette({ environmentIncluded, onAddComponent }: ComponentPale
 				>
 					<span
 						className={styles.palette_swatch}
-						data-component-type={componentType.value}
+						style={{ backgroundColor: COMPONENT_COLORS[componentType.value] }}
 						aria-hidden="true"
 					/>
 					<span>{componentType.label}</span>
@@ -40,7 +41,7 @@ function ComponentPalette({ environmentIncluded, onAddComponent }: ComponentPale
 			>
 				<span
 					className={styles.palette_swatch}
-					data-component-type={IComponentType.ENVIRONMENT}
+					style={{ backgroundColor: COMPONENT_COLORS[IComponentType.ENVIRONMENT] }}
 					aria-hidden="true"
 				/>
 				<span>Environment</span>
