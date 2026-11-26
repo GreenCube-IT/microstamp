@@ -244,8 +244,8 @@ export function setSideRatioAnchor(linkView: joint.dia.LinkView, end: joint.dia.
 	});
 }
 
-export function highlightCell(view: joint.dia.CellView | undefined) {
-	view?.highlight(undefined, {
+function getSelectionHighlightOptions() {
+	return {
 		highlighter: {
 			name: "stroke",
 			options: {
@@ -253,11 +253,15 @@ export function highlightCell(view: joint.dia.CellView | undefined) {
 				attrs: { stroke: getThemeColor(SELECTION_HIGHLIGHT_COLOR), "stroke-width": 2 }
 			}
 		}
-	});
+	};
+}
+
+export function highlightCell(view: joint.dia.CellView | undefined) {
+	view?.highlight(undefined, getSelectionHighlightOptions());
 }
 
 export function unhighlightCell(view: joint.dia.CellView | undefined) {
-	view?.unhighlight();
+	view?.unhighlight(undefined, getSelectionHighlightOptions());
 }
 
 export function applyComponentAppearance(
