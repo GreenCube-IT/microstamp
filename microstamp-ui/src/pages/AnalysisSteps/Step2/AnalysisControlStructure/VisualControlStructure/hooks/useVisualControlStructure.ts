@@ -121,6 +121,9 @@ export default function useVisualControlStructure({
 			if (!isValidComponentSize(candidate.width, candidate.height)) {
 				return "Width and height must be whole numbers of at least 20 px.";
 			}
+			if (candidate.type === IComponentType.ENVIRONMENT) {
+				return null;
+			}
 			if (isReservedComponentName(candidate.name)) {
 				return "The Environment name is reserved.";
 			}

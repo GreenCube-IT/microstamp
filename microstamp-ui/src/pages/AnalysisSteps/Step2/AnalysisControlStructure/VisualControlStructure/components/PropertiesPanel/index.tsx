@@ -1,4 +1,3 @@
-import { IComponentType } from "@interfaces/IStep2/IComponent";
 import type { IInteractionType } from "@interfaces/IStep2/IInteraction/Enums";
 import type {
 	ComponentData,
@@ -40,11 +39,7 @@ function PropertiesPanel({
 	return (
 		<aside className={styles.properties} aria-label="Selected element properties">
 			<h2>Properties</h2>
-			{draft?.kind === "component" && draft.type === IComponentType.ENVIRONMENT ? (
-				<p className={styles.properties_hint}>
-					The Environment has a fixed identity and cannot be edited.
-				</p>
-			) : draft?.kind === "component" ? (
+			{draft?.kind === "component" ? (
 				<ComponentProperties
 					draft={draft}
 					fatherOptions={fatherOptions}
