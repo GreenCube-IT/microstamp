@@ -77,6 +77,7 @@ function AnalysisControlStructure() {
 				</div>
 				{visualEditorStarted && (
 					<VisualControlStructure
+						analysisId={analysis.id}
 						environmentIncluded={environmentIncluded}
 						onEnvironmentIncludedChange={setEnvironmentIncluded}
 					/>

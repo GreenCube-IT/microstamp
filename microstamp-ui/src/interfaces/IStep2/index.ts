@@ -19,6 +19,8 @@ export type {
 	IComponentUpdateDto
 };
 
+export type { IControlStructureReadDto } from "./IControlStructureReadDto";
+
 /* - - - - - - - - - - - - - - - - - - - - - - */
 // * State DTOs
 

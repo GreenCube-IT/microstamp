@@ -79,7 +79,6 @@ public class ControlStructureServiceImpl implements ControlStructureService {
                 .analysisId(analysisId)
                 .components(components)
                 .connections(connections)
-                .layout(null)
                 .build();
     }
 }

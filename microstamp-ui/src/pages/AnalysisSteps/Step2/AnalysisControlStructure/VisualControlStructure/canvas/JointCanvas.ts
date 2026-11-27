@@ -19,7 +19,13 @@ import {
 	setSideRatioAnchor,
 	unhighlightCell
 } from "./shapes";
-import type { ComponentData, ConnectionData, DiagramData, InteractionData } from "../domain/types";
+import type {
+	CanvasInitialData,
+	ComponentData,
+	ConnectionData,
+	DiagramData,
+	InteractionData
+} from "../domain/types";
 import {
 	CANVAS_BACKGROUND_COLOR,
 	CANVAS_GRID_COLOR,
@@ -34,6 +40,7 @@ import {
 import { getCascadeDeletionPlan, getNextCode } from "../domain/rules";
 import type { ConnectionEndpoints, HierarchyComponent } from "../domain/rules";
 import type { SideRatioAnchor } from "./shapes";
+import { DEFAULT_LINK_ANCHOR, getDefaultComponentPosition } from "./layoutDefaults";
 
 export interface CanvasSnapshotItem {
 	data: DiagramData;
@@ -59,6 +66,7 @@ export interface JointCanvasApi {
 	applySelected: (data: DiagramData) => void;
 	deleteSelected: () => void;
 	clear: () => void;
+	loadSnapshot: (snapshot: CanvasInitialData) => void;
 	setZoom: (scale: number) => void;
 	zoomBy: (delta: number) => void;
 	resetView: () => void;
@@ -164,7 +172,7 @@ export function createJointCanvas(
 		drawGrid: { name: "dot", args: { color: getThemeColor(CANVAS_GRID_COLOR), gap: 10 } },
 		background: { color: getThemeColor(CANVAS_BACKGROUND_COLOR) },
 		defaultConnectionPoint: { name: "boundary", args: { perpendicular: false } },
-		defaultAnchor: { name: "center" },
+		defaultAnchor: DEFAULT_LINK_ANCHOR,
 		linkPinning: false,
 		defaultRouter: { name: "normal" },
 		defaultConnector: { name: "rounded", args: { radius: 8 } },
@@ -351,7 +359,6 @@ export function createJointCanvas(
 			const translation = paper.translate();
 			const centerX = (host.clientWidth / 2 - translation.tx) / scale;
 			const centerY = (host.clientHeight / 2 - translation.ty) / scale;
-			const offset = graph.getCells().filter(cell => cell.isElement()).length * 22;
 			const componentData: ComponentData = {
 				kind: "component",
 				component: {
@@ -367,8 +374,11 @@ export function createJointCanvas(
 				}
 			};
 			const component = createDiagramCell(componentData, {
-				x: centerX - size.width / 2 + offset,
-				y: centerY - size.height / 2 + offset
+				...getDefaultComponentPosition(
+					graph.getCells().filter(cell => cell.isElement()).length,
+					{ x: centerX, y: centerY },
+					size
+				)
 			});
 			graph.addCell(component);
 			if (isEnvironment) callbacks.onEnvironmentIncludedChange(true);
@@ -396,6 +406,59 @@ export function createJointCanvas(
 			graph.clear();
 			callbacks.onEnvironmentIncludedChange(false);
 			clearSelection();
+			notifyDiagramChange();
+		},
+		loadSnapshot: snapshot => {
+			const componentClientIds = new Set(
+				snapshot.components.map(({ component }) => component.clientId)
+			);
+			snapshot.connections.forEach(({ sourceClientId, targetClientId }) => {
+				if (!componentClientIds.has(sourceClientId) || !componentClientIds.has(targetClientId)) {
+					throw new Error("Cannot hydrate a connection with a missing component endpoint.");
+				}
+			});
+
+			graph.clear();
+			clearSelection();
+			const translation = paper.translate();
+			const center = {
+				x: (host.clientWidth / 2 - translation.tx) / scale,
+				y: (host.clientHeight / 2 - translation.ty) / scale
+			};
+			const cellsByClientId = new Map<string, joint.dia.Element>();
+			snapshot.components.forEach((data, index) => {
+				const component = createDiagramCell(
+					data,
+					getDefaultComponentPosition(index, center, {
+						width: data.component.width,
+						height: data.component.height
+					})
+				);
+				if (!component.isElement()) {
+					throw new Error("Expected a component element while hydrating the control structure.");
+				}
+				graph.addCell(component);
+				cellsByClientId.set(data.component.clientId, component);
+			});
+
+			snapshot.connections.forEach(({ data, sourceClientId, targetClientId }) => {
+				const source = cellsByClientId.get(sourceClientId);
+				const target = cellsByClientId.get(targetClientId);
+				if (!source || !target) {
+					throw new Error("Cannot hydrate a connection with a missing component endpoint.");
+				}
+
+				const link = createConnectionCell(data.connection);
+				link.source({ id: String(source.id), anchor: DEFAULT_LINK_ANCHOR });
+				link.target({ id: String(target.id), anchor: DEFAULT_LINK_ANCHOR });
+				graph.addCell(link);
+			});
+
+			callbacks.onEnvironmentIncludedChange(
+				snapshot.components.some(
+					({ component }) => component.type === IComponentType.ENVIRONMENT
+				)
+			);
 			notifyDiagramChange();
 		},
 		setZoom: nextScale => {

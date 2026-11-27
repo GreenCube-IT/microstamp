@@ -29,6 +29,15 @@ export interface ConnectionData {
 	};
 }
 
+export interface CanvasInitialData {
+	components: ComponentData[];
+	connections: {
+		data: ConnectionData;
+		sourceClientId: string;
+		targetClientId: string;
+	}[];
+}
+
 export interface InteractionData {
 	backendId?: string;
 	clientId: string;

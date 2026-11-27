@@ -1,27 +1,72 @@
 import { ModalConfirm } from "@components/Modal";
+import { getControlStructure, controlStructureQueryKey } from "@http/Step2/ControlStructures";
 import type { IComponentType } from "@interfaces/IStep2/IComponent";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import CanvasToolbar from "./components/CanvasToolbar";
 import ComponentPalette from "./components/ComponentPalette";
 import PropertiesPanel from "./components/PropertiesPanel";
+import { mapControlStructureToCanvasData } from "./adapters/controlStructureAdapter";
 import useVisualControlStructure from "./hooks/useVisualControlStructure";
 import styles from "./VisualControlStructure.module.css";
 import "jointjs/dist/joint.min.css";
 
 interface VisualControlStructureProps {
+	analysisId: string;
 	environmentIncluded: boolean;
 	onEnvironmentIncludedChange: (included: boolean) => void;
 }
 
 function VisualControlStructure({
+	analysisId,
 	environmentIncluded,
 	onEnvironmentIncludedChange
 }: VisualControlStructureProps) {
+	const structureQuery = useQuery({
+		queryKey: controlStructureQueryKey(analysisId),
+		queryFn: async () =>
+			mapControlStructureToCanvasData(await getControlStructure(analysisId)),
+		refetchOnWindowFocus: false
+	});
+
+	if (structureQuery.isPending || structureQuery.isFetching) {
+		return <p role="status">Loading control structure...</p>;
+	}
+
+	if (structureQuery.isError) {
+		const message = structureQuery.error instanceof Error
+			? structureQuery.error.message
+			: "Unknown error";
+		return <p role="alert">Could not load control structure: {message}</p>;
+	}
+
+	return (
+		<LoadedVisualControlStructure
+			initialData={structureQuery.data}
+			environmentIncluded={environmentIncluded}
+			onEnvironmentIncludedChange={onEnvironmentIncludedChange}
+		/>
+	);
+}
+
+interface LoadedVisualControlStructureProps extends Pick<
+	VisualControlStructureProps,
+	"environmentIncluded" | "onEnvironmentIncludedChange"
+> {
+	initialData: ReturnType<typeof mapControlStructureToCanvasData>;
+}
+
+function LoadedVisualControlStructure({
+	initialData,
+	environmentIncluded,
+	onEnvironmentIncludedChange
+}: LoadedVisualControlStructureProps) {
 	const [clearConfirmationOpen, setClearConfirmationOpen] = useState(false);
 	const editor = useVisualControlStructure({
 		environmentIncluded,
 		onEnvironmentIncludedChange,
-		paperHostClassName: styles.paper_host
+		paperHostClassName: styles.paper_host,
+		initialData
 	});
 	const clearDiagram = () => {
 		editor.clearDiagram();

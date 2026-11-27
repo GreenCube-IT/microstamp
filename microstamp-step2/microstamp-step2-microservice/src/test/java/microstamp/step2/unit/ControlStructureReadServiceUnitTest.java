@@ -57,7 +57,6 @@ class ControlStructureReadServiceUnitTest {
         assertEquals(analysisId, result.getAnalysisId());
         assertTrue(result.getComponents().isEmpty());
         assertTrue(result.getConnections().isEmpty());
-        assertNull(result.getLayout());
         verify(microStampAuthClient).getAnalysisById(analysisId);
         verifyNoInteractions(environmentService);
     }
@@ -120,7 +119,6 @@ class ControlStructureReadServiceUnitTest {
         assertSame(interaction, result.getConnections().getFirst().getInteractions().getFirst());
         assertSame(source, result.getConnections().getFirst().getSource());
         assertSame(target, result.getConnections().getFirst().getTarget());
-        assertNull(result.getLayout());
         verifyNoInteractions(environmentService);
     }
 

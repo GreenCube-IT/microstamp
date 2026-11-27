@@ -2,6 +2,7 @@ import { IComponentType } from "@interfaces/IStep2/IComponent";
 import { IInteractionType } from "@interfaces/IStep2/IInteraction/Enums";
 import { useEffect, useRef, useState } from "react";
 import type {
+	CanvasInitialData,
 	ComponentData,
 	ComponentDraft,
 	ConnectionData,
@@ -28,6 +29,7 @@ interface UseVisualControlStructureOptions {
 	environmentIncluded: boolean;
 	onEnvironmentIncludedChange: (included: boolean) => void;
 	paperHostClassName: string;
+	initialData: CanvasInitialData;
 }
 
 function cloneDraft(data: DiagramData): PropertiesDraft {
@@ -47,11 +49,14 @@ function toComponentData(snapshot: CanvasSnapshotItem[]): ComponentData[] {
 export default function useVisualControlStructure({
 	environmentIncluded: externalEnvironmentIncluded,
 	onEnvironmentIncludedChange,
-	paperHostClassName
+	paperHostClassName,
+	initialData
 }: UseVisualControlStructureOptions) {
 	const canvasContainerRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<JointCanvasApi | null>(null);
 	const callbacksRef = useRef<JointCanvasCallbacks | null>(null);
+	const initialDataRef = useRef(initialData);
+	initialDataRef.current = initialData;
 	const [components, setComponents] = useState<ComponentData[]>([]);
 	const [selectedItem, setSelectedItem] = useState<DiagramData | null>(null);
 	const [draft, setDraft] = useState<PropertiesDraft | null>(null);
@@ -110,6 +115,7 @@ export default function useVisualControlStructure({
 		});
 		const canvas = createJointCanvas(host, latestCallbacks(), paperHostClassName);
 		canvasRef.current = canvas;
+		canvas.loadSnapshot(initialDataRef.current);
 		return () => {
 			canvas.dispose();
 			canvasRef.current = null;
