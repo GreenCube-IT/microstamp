@@ -6,17 +6,41 @@ interface IconButtonProps {
 	onClick?: () => void;
 	to?: string;
 	icon: IconType;
+	"aria-label"?: string;
+	title?: string;
+	disabled?: boolean;
 }
-function IconButton({ onClick, to, icon: Icon }: IconButtonProps) {
+function IconButton({
+	onClick,
+	to,
+	icon: Icon,
+	"aria-label": ariaLabel,
+	title,
+	disabled = false
+}: IconButtonProps) {
 	if (to) {
 		<Link to={to}>
-			<button type="button" onClick={onClick} className={styles.icon_button}>
+			<button
+				type="button"
+				onClick={onClick}
+				disabled={disabled}
+				className={styles.icon_button}
+				aria-label={ariaLabel}
+				title={title}
+			>
 				<Icon />
 			</button>
 		</Link>;
 	}
 	return (
-		<button type="button" onClick={onClick} className={styles.icon_button}>
+		<button
+			type="button"
+			onClick={onClick}
+			disabled={disabled}
+			className={styles.icon_button}
+			aria-label={ariaLabel}
+			title={title}
+		>
 			<Icon />
 		</button>
 	);

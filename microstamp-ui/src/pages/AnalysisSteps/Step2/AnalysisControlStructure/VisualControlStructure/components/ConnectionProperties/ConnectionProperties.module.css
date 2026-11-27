@@ -1,0 +1,11 @@
+.property_form {
+	display: flex;
+	flex-direction: column;
+	gap: 1.2rem;
+}
+
+.properties_hint {
+	color: var(--color-light-gray);
+	font-size: 1.1rem;
+	line-height: 1.5;
+}

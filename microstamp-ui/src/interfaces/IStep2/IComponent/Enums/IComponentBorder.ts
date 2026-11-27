@@ -16,7 +16,7 @@ export { IComponentBorder };
 
 // Component Border Select Options
 
-const borderSelectOptions: SelectOption[] = [
+const borderSelectOptions: SelectOption<IComponentBorder>[] = [
 	{ label: "Solid", value: IComponentBorder.SOLID },
 	{ label: "Dashed", value: IComponentBorder.DASHED },
 	{ label: "Etched", value: IComponentBorder.ETCHED }

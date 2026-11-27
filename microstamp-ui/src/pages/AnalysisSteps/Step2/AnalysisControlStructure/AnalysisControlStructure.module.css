@@ -1,0 +1,41 @@
+.workspace {
+	display: flex;
+	flex-direction: column;
+	gap: 1.6rem;
+	width: 100%;
+	min-height: 60rem;
+	height: min(72vh, 90rem);
+	padding: 1.8rem;
+	border: var(--border3);
+	border-radius: var(--radius2);
+	background: var(--color-background);
+}
+
+.workspace_hidden {
+	display: none;
+}
+
+.workspace_header {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+
+	h1 {
+		color: var(--color-yellow);
+		font-size: 1.8rem;
+		font-weight: 600;
+	}
+
+	p {
+		color: var(--color-light-gray);
+		font-size: 1.3rem;
+	}
+}
+
+@media (max-width: 600px) {
+	.workspace {
+		min-height: 48rem;
+		height: 65vh;
+		padding: 1.2rem;
+	}
+}

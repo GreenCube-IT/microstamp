@@ -18,7 +18,7 @@ export { IComponentType };
 
 // Component Border Select Options
 
-const componentTypeSelectOptions: SelectOption[] = [
+const componentTypeSelectOptions: SelectOption<IComponentType>[] = [
 	{ label: "Controller", value: IComponentType.CONTROLLER },
 	{ label: "Controlled Process", value: IComponentType.CONTROLLED_PROCESS },
 	{ label: "Actuator", value: IComponentType.ACTUATOR },
