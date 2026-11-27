@@ -4,6 +4,7 @@ import microstamp.step2.client.MicroStampAuthClient;
 import microstamp.step2.dto.component.ComponentReadDto;
 import microstamp.step2.dto.connection.ConnectionReadDto;
 import microstamp.step2.dto.controlstructure.ControlStructureInsertDto;
+import microstamp.step2.dto.controlstructure.ControlStructureReadDto;
 import microstamp.step2.dto.interaction.InteractionReadDto;
 import microstamp.step2.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,5 +65,21 @@ public class ControlStructureServiceImpl implements ControlStructureService {
         connectionSync.cleanUpRemoved(context);
         componentSync.cleanUpRemoved(context);
         environmentSync.cleanUpRemoved(context);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ControlStructureReadDto findByAnalysisId(UUID analysisId) {
+        microStampAuthClient.getAnalysisById(analysisId);
+
+        List<ComponentReadDto> components = componentService.findByAnalysisId(analysisId);
+        List<ConnectionReadDto> connections = connectionService.findByAnalysisId(analysisId);
+
+        return ControlStructureReadDto.builder()
+                .analysisId(analysisId)
+                .components(components)
+                .connections(connections)
+                .layout(null)
+                .build();
     }
 }
