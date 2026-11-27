@@ -231,19 +231,6 @@ export function createAnchorToolsView() {
 	});
 }
 
-export function setSideRatioAnchor(linkView: joint.dia.LinkView, end: joint.dia.LinkEnd) {
-	const endView = linkView.getEndView(end);
-	if (!endView || !endView.model.isElement()) return;
-
-	const bbox = endView.model.getBBox();
-	const point = linkView.getEndAnchor(end);
-	const anchor = pointToSideRatio(bbox, point);
-	linkView.model.prop(`${end}/anchor`, {
-		name: "sideRatio",
-		args: anchor
-	});
-}
-
 function getSelectionHighlightOptions() {
 	return {
 		highlighter: {

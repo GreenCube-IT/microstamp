@@ -7,6 +7,7 @@ import {
 	DEFAULT_LINK_ANCHOR,
 	getDefaultComponentPosition
 } from "../canvas/layoutDefaults";
+import { getBorderDashArray } from "../canvas/shapes";
 import { mapControlStructureToCanvasData } from "./controlStructureAdapter";
 
 describe("mapControlStructureToCanvasData", () => {
@@ -68,12 +69,14 @@ describe("mapControlStructureToCanvasData", () => {
 			backendId: "controller-1",
 			clientId: "controller-1",
 			type: IComponentType.CONTROLLER,
+			border: IComponentBorder.SOLID,
 			fatherClientId: null
 		});
 		expect(result.components[1].component).toMatchObject({
 			backendId: "process-1",
 			clientId: "process-1",
 			type: IComponentType.CONTROLLED_PROCESS,
+			border: IComponentBorder.DASHED,
 			fatherClientId: "controller-1",
 			isVisible: false
 		});
@@ -124,7 +127,7 @@ describe("mapControlStructureToCanvasData", () => {
 });
 
 describe("default canvas layout", () => {
-	it("uses the current sequential offset and centered link anchor", () => {
+	it("uses the current sequential offset and top-centered link anchor", () => {
 		expect(getDefaultComponentPosition(0, { x: 500, y: 300 })).toEqual({
 			x: 405,
 			y: 262
@@ -133,6 +136,15 @@ describe("default canvas layout", () => {
 			x: 427,
 			y: 284
 		});
-		expect(DEFAULT_LINK_ANCHOR).toEqual({ name: "center" });
+		expect(DEFAULT_LINK_ANCHOR).toEqual({
+			name: "sideRatio",
+			args: { side: "top", ratio: 0.5 }
+		});
+	});
+
+	it("renders component border styles from their domain values", () => {
+		expect(getBorderDashArray(IComponentBorder.SOLID)).toBe("none");
+		expect(getBorderDashArray(IComponentBorder.DASHED)).toBe("8 4");
+		expect(getBorderDashArray(IComponentBorder.ETCHED)).toBe("2 2");
 	});
 });

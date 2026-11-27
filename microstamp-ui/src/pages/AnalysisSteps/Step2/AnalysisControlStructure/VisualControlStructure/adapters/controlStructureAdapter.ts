@@ -1,4 +1,4 @@
-import { IComponentType } from "@interfaces/IStep2/IComponent";
+import { IComponentBorder, IComponentType } from "@interfaces/IStep2/IComponent";
 import type { IControlStructureReadDto } from "@interfaces/IStep2";
 import type { CanvasInitialData, ComponentData, ConnectionData } from "../domain/types";
 import { DEFAULT_COMPONENT_SIZE } from "../canvas/visualConstants";
@@ -17,6 +17,19 @@ function mapComponentType(type: string): IComponentType {
 			return IComponentType.ENVIRONMENT;
 		default:
 			throw new Error(`Unsupported component type in control structure: ${type}`);
+	}
+}
+
+function mapComponentBorder(border: string): IComponentBorder {
+	switch (border) {
+		case "SOLID":
+			return IComponentBorder.SOLID;
+		case "DASHED":
+			return IComponentBorder.DASHED;
+		case "ETCHED":
+			return IComponentBorder.ETCHED;
+		default:
+			throw new Error(`Unsupported component border in control structure: ${border}`);
 	}
 }
 
@@ -39,7 +52,7 @@ export function mapControlStructureToCanvasData(
 			name: component.name,
 			code: component.code,
 			type: mapComponentType(component.type),
-			border: component.border,
+			border: mapComponentBorder(component.border),
 			fatherClientId: component.father
 				? requireComponentId(component.father.id, componentIds, "parent")
 				: null,

@@ -16,7 +16,6 @@ import {
 	createAnchorToolsView,
 	highlightCell,
 	getSideRatioAnchor,
-	setSideRatioAnchor,
 	unhighlightCell
 } from "./shapes";
 import type {
@@ -258,9 +257,9 @@ export function createJointCanvas(
 	paper.on("element:pointerclick", view => selectCell(view.model));
 	paper.on("link:pointerclick", view => selectCell(view.model));
 	paper.on("element:pointerup", () => callbacks.onNodeMove(getSnapshot()));
-	paper.on("link:connect", (linkView, _event, _elementView, _magnet, arrowhead) => {
-		setSideRatioAnchor(linkView, arrowhead);
-		setSideRatioAnchor(linkView, arrowhead === "source" ? "target" : "source");
+	paper.on("link:connect", linkView => {
+		linkView.model.prop("source/anchor", DEFAULT_LINK_ANCHOR);
+		linkView.model.prop("target/anchor", DEFAULT_LINK_ANCHOR);
 		normalizeConnectionInteractions(graph, linkView.model);
 		const data = getDiagramData(linkView.model);
 		if (data?.kind === "connection") callbacks.onConnect(data.connection);

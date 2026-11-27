@@ -17,4 +17,7 @@ export function getDefaultComponentPosition(
 	};
 }
 
-export const DEFAULT_LINK_ANCHOR = { name: "center" } as const;
+export const DEFAULT_LINK_ANCHOR = {
+	name: "sideRatio",
+	args: { side: "top", ratio: 0.5 }
+} as const;
